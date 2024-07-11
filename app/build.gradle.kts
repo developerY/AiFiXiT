@@ -65,6 +65,8 @@ dependencies {
     implementation(libs.generativeai)
     implementation(libs.androidx.lifecycle.runtime.compose.android)
 
+    implementation(libs.androidx.material3)
+
     implementation(libs.androidx.accompanist.permissions)
 
     implementation(libs.coil.compose)

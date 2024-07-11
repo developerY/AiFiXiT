@@ -23,12 +23,18 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -207,7 +213,8 @@ internal fun MLContent(
     val placeholderResult = stringResource(R.string.results_placeholder)
     var prompt by rememberSaveable { mutableStateOf(placeholderPrompt) }
     var result by rememberSaveable { mutableStateOf(result) }
-    val images = remember { mutableStateListOf(*initialImagePaths) }
+    var images = remember { mutableStateListOf(*initialImagePaths) }
+    var isCameraVisible by remember { mutableStateOf(false) }
 
     Column(
         modifier = modifier
@@ -222,7 +229,7 @@ internal fun MLContent(
             .align(Alignment.CenterHorizontally)
         )
 
-        Box(
+        /*Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(300.dp)
@@ -238,9 +245,58 @@ internal fun MLContent(
                     images.add(file.path)
                 }
             )
-        }
+        }*/
 
-        LazyRow(
+        if (isCameraVisible) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(300.dp) // Adjust the height as needed
+                    .padding(vertical = 16.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(MaterialTheme.colorScheme.surface)
+                    .border(BorderStroke(2.dp, MaterialTheme.colorScheme.primary))
+            ) {
+                FixImage(
+                    modifier = Modifier.fillMaxSize(),
+                    onImageFile = { file ->
+                        // Replace the current list of images with the new image file path
+                        images.add(file.path)
+                        isCameraVisible = false // Hide the camera after capturing the image
+                    }
+                )
+            }
+        } else {
+            IconButton(
+                onClick = { isCameraVisible = true },
+                modifier = Modifier
+                    .padding(vertical = 16.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .size(64.dp) // Adjust the size as needed
+            ) {
+                Icon(
+                    //imageVector = Icons.Filled.Person, // Use the Material3 camera icon
+                    painter = painterResource(R.drawable.add_a_photo), // Update with your camera icon resource
+                    contentDescription = stringResource(R.string.action_go),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+
+            if (images.isNotEmpty()) {
+                val imagePath = images.last()
+                val bitmap = BitmapFactory.decodeFile(imagePath)
+                Image(
+                    bitmap = bitmap.asImageBitmap(),
+                    contentDescription = "Captured Image",
+                    modifier = Modifier
+                        .padding(vertical = 16.dp)
+                        .size(200.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .border(BorderStroke(4.dp, MaterialTheme.colorScheme.primary))
+                )
+            }
+        }
+        /*LazyRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 16.dp)
@@ -265,7 +321,7 @@ internal fun MLContent(
                         .shadow(4.dp, MaterialTheme.shapes.medium)
                 )
             }
-        }
+        }*/
 
         Row(
             modifier = Modifier
