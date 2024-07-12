@@ -60,7 +60,7 @@ fun BakingScreen(
     val placeholderResult = stringResource(R.string.results_placeholder)
     var prompt by rememberSaveable { mutableStateOf(placeholderPrompt) }
     var result by rememberSaveable { mutableStateOf(placeholderResult) }
-    val uiState by fixMeViewModel.uiState.collectAsState()
+    val uiState by fixMeViewModel.fixMeUiState.collectAsState()
     val context = LocalContext.current
 
     Column(
@@ -123,16 +123,16 @@ fun BakingScreen(
             }
         }
 
-        if (uiState is UiState.Loading) {
+        if (uiState is FixMeUiState.Loading) {
             CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
         } else {
             var textColor = MaterialTheme.colorScheme.onSurface
-            if (uiState is UiState.Error) {
+            if (uiState is FixMeUiState.Error) {
                 textColor = MaterialTheme.colorScheme.error
-                result = (uiState as UiState.Error).errorMessage
-            } else if (uiState is UiState.Success) {
+                result = (uiState as FixMeUiState.Error).errorMessage
+            } else if (uiState is FixMeUiState.Success) {
                 textColor = MaterialTheme.colorScheme.onSurface
-                result = (uiState as UiState.Success).outputText
+                result = (uiState as FixMeUiState.Success).outputText
             }
             val scrollState = rememberScrollState()
             Text(

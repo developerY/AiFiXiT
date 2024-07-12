@@ -6,35 +6,32 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.drawable.BitmapDrawable
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
-import androidx.camera.view.LifecycleCameraController
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Build
-import androidx.compose.material.icons.filled.Face
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Camera
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.NoteAlt
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -44,6 +41,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -58,7 +57,6 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -67,12 +65,12 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberPermissionState
 import com.ylabz.fixme.ui.FixImage
-import com.ylabz.fixme.ui.camera.CameraPreview
-import com.ylabz.fixme.ui.camera.FixCamCap
-import com.ylabz.fixme.ui.camera.MLFaceDetectScreen
 import com.ylabz.fixme.ui.core.Loading
-import com.ylabz.fixme.ui.core.Permission
+import com.ylabz.fixme.ui.mic.SpeechCaptureUI
+import kotlinx.coroutines.delay
 import java.io.File
 import java.io.FileOutputStream
 
@@ -83,14 +81,14 @@ fun MLRoute(
     fixMeViewModel: FixMeViewModel = viewModel()
 ) {
     val onEvent = fixMeViewModel::onEvent
-    val mlState by fixMeViewModel.uiState.collectAsStateWithLifecycle()
+    val mlState by fixMeViewModel.fixMeUiState.collectAsStateWithLifecycle()
     //val work: () -> LifecycleCameraController = fixMeViewModel::buildAna
 
     MLScreen(
         //paddingValues = paddingValues,
         //lifeCycCamCont = work,
         onEvent = onEvent,
-        uiState = mlState,
+        fixMeUiState = mlState,
         //navTo = navTo,
     )
 
@@ -104,49 +102,49 @@ internal fun MLScreen(
     //paddingValues: PaddingValues,
     //lifeCycCamCont: () -> LifecycleCameraController,
     onEvent: (MLEvent) -> Unit,
-    uiState: UiState,
+    fixMeUiState: FixMeUiState,
     //navTo: (String) -> Unit,
 ) {
 
-    when (uiState) {
+    when (fixMeUiState) {
         /*
-        if (uiState is UiState.Loading) {
+        if (fixMeUiState is FixMeUiState.Loading) {
             CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
          } else {
          */
-        UiState.Loading -> Loading(modifier)
+        FixMeUiState.Loading -> Loading(modifier)
 
 
         /*
-        else if (uiState is UiState.Success) {
+        else if (fixMeUiState is FixMeUiState.Success) {
                 textColor = MaterialTheme.colorScheme.onSurface
-                result = (uiState as UiState.Success).outputText
+                result = (fixMeUiState as FixMeUiState.Success).outputText
             }
          */
-        is UiState.Success -> MLContent(
+        is FixMeUiState.Success -> MLContent(
             modifier,
             //paddingValues = paddingValues,
             //lifeCycCamCont = lifeCycCamCont,
             onEvent = onEvent,
-            result = uiState.outputText
+            result = fixMeUiState.outputText
             //imgClassID = mlUiState.data,
             //screenAI = mlUiState.currentScreen,
             //genAIRes = mlUiState.aiResponse,
             //navTo = navTo
         )
 
-        //uiState.Error -> TODO()
+        //fixMeUiState.Error -> TODO()
         /*
-        if (uiState is UiState.Error) {
+        if (fixMeUiState is FixMeUiState.Error) {
                 textColor = MaterialTheme.colorScheme.error
-                result = (uiState as UiState.Error).errorMessage
+                result = (fixMeUiState as FixMeUiState.Error).errorMessage
          */
-        is UiState.Error -> {
+        is FixMeUiState.Error -> {
             val textColor = MaterialTheme.colorScheme.error
-            val result = (uiState as UiState.Error).errorMessage
+            val result = (fixMeUiState as FixMeUiState.Error).errorMessage
         }
-        // UiState.Initial -> TODO()
-        // is UiState.Success -> TODO()
+        // FixMeUiState.Initial -> TODO()
+        // is FixMeUiState.Success -> TODO()
         // TODO()
     }
 }
@@ -222,16 +220,38 @@ internal fun MLContent(
     var result by rememberSaveable { mutableStateOf(result) }
     var images = remember { mutableStateListOf(*initialImagePaths) }
     var isCameraVisible by remember { mutableStateOf(false) }
+    var isCameraNoteVisible by remember { mutableStateOf(false) }
     var isRecording by remember { mutableStateOf(false) }
+    var speechText by rememberSaveable { mutableStateOf("") }
+    var seconds by remember { mutableStateOf(0) }
+
+    val permissionState = rememberPermissionState(Manifest.permission.RECORD_AUDIO)
+    // Observe changes in the permission state and trigger recomposition
+    val hasPermission by remember { derivedStateOf { permissionState.status.isGranted } }
+
 
     var showError by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
+
+    // Add a progress bar to indicate recording progress
+    var progress by remember { mutableStateOf(0f) }
+
+    LaunchedEffect(isRecording) {
+        while (isRecording) {
+            progress += 0.1f
+            if (progress >= 1f) {
+                progress = 0f
+            }
+            seconds++
+            delay(100L)
+        }
+    }
 
     if (showError) {
         Snackbar(
             action = {
                 TextButton(onClick = { showError = false }) {
-                    Text(text = "dismiss")//stringResource("dismiss"))
+                    Text(text = "dismiss")// stringResource(R.string.dismiss))
                 }
             },
             modifier = Modifier.padding(16.dp)
@@ -267,7 +287,7 @@ internal fun MLContent(
                         // Replace the current list of images with the new image file path
                         images.add(file.path)
                         isCameraVisible = false // Hide the camera after capturing the image
-                    }
+                    },
                     /*onError = { message ->
                         errorMessage = message
                         showError = true
@@ -287,40 +307,139 @@ internal fun MLContent(
                         .size(64.dp) // Adjust the size as needed
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Build, // Use the Material3 camera icon
+                        imageVector = Icons.Default.Camera, // Use the Material3 camera icon
                         contentDescription = stringResource(R.string.action_go),
                         tint = MaterialTheme.colorScheme.primary
                     )
                 }
 
                 Spacer(modifier = Modifier.width(16.dp))
+                SpeechCaptureUI(
+                    hasPermission = hasPermission,
+                    updateText = {},//{ desTxt -> text = desTxt },
+                    onEvent = onEvent
+                )
+
+                Box(
+                    modifier = Modifier
+                        //.fillMaxSize()
+                    //.padding(paddingValues)
+                    //.align(Alignment.Center)
+                ) {
+                    IconButton(
+                        onClick = { isRecording = !isRecording
+
+                                if (isRecording) {
+                                    Log.d("Photodo", "Start recoding")
+                                    // Start the audio recording
+                                    //onEvent(AddPhotodoEvent.StartAudioRec)
+                                }
+                                if (!isRecording) {
+                                    //And save audio recording to a file
+                                    //onEvent(AddPhotodoEvent.SaveAudio)
+                                    //TODO: Drop the bar
+                                }
+
+                                  },
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .size(64.dp) // Adjust the size as needed
+                    ) {
+                        Icon(
+                            Icons.Default.Mic, // Use the Material3 mic icon
+                            contentDescription = stringResource(R.string.action_go),
+                            tint = if (isRecording) Color.Red else MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    if (isRecording) {
+                        CircularProgressIndicator(
+                            progress = { progress },
+                            modifier = Modifier.align(Alignment.Center),
+                            //.fillMaxSize() // Set your desired size here
+                            //.padding(16.dp), // Optional padding
+                            color = Color.Black,
+                            strokeWidth = 4.dp,
+                        )
+                    }
+
+                    IconButton(
+                        onClick = { isRecording = !isRecording },
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .size(64.dp) // Adjust the size as needed
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Mic, // Use the Material3 mic icon
+                            contentDescription = stringResource(R.string.action_go),
+                            tint = if (isRecording) Color.Red else MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(16.dp))
 
                 IconButton(
-                    onClick = { isRecording = !isRecording },
+                    onClick = { isCameraVisible = true },
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
                         .size(64.dp) // Adjust the size as needed
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Face, // Use the Material3 mic icon
+                        imageVector = Icons.Default.NoteAlt, // Use the Material3 camera icon
                         contentDescription = stringResource(R.string.action_go),
-                        tint = if (isRecording) Color.Red else MaterialTheme.colorScheme.primary
+                        tint = MaterialTheme.colorScheme.primary
                     )
                 }
             }
 
-            if (images.isNotEmpty()) {
+            Column {
                 val imagePath = images.last()
                 val bitmap = BitmapFactory.decodeFile(imagePath)
-                Image(
-                    bitmap = bitmap.asImageBitmap(),
-                    contentDescription = "Captured Image",
+                LazyRow(
                     modifier = Modifier
                         .padding(vertical = 16.dp)
-                        .size(200.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .border(BorderStroke(4.dp, MaterialTheme.colorScheme.primary))
-                )
+                        .fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    item {
+                        if (images.isNotEmpty()) {
+                            Image(
+                                bitmap = bitmap.asImageBitmap(),
+                                contentDescription = "Captured Image",
+                                modifier = Modifier
+                                    .size(200.dp)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .border(BorderStroke(4.dp, MaterialTheme.colorScheme.primary))
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(16.dp))
+                    }
+                    item {
+                        TextField(
+                            value = speechText,
+                            onValueChange = { speechText = it },
+                            label = { Text(text = "speak") }, //stringResource(R.string.speech_text_label)) },
+                            modifier = Modifier
+                                .size(200.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .border(BorderStroke(2.dp, MaterialTheme.colorScheme.primary))
+                        )
+                        Spacer(modifier = Modifier.width(16.dp))
+
+                    }
+                    item {
+                        TextField(
+                            value = speechText,
+                            onValueChange = { speechText = it },
+                            label = { Text(text = "speak") }, //stringResource(R.string.speech_text_label)) },
+                            modifier = Modifier
+                                .size(200.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .border(BorderStroke(2.dp, MaterialTheme.colorScheme.primary))
+                        )
+                    }
+                }
             }
         }
 
@@ -386,7 +505,8 @@ fun MLContentPreview() {
     MaterialTheme {
         MLContent(
             onEvent = {},
-            result = "found" //stringResource(R.string.results_placeholder)
+            result = stringResource(R.string.results_placeholder)
         )
     }
 }
+
