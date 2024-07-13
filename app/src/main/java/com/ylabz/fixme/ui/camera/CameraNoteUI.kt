@@ -7,32 +7,13 @@ import android.provider.Settings
 import android.util.Log
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ExperimentalGetImage
-import androidx.camera.view.LifecycleCameraController
+import androidx.camera.core.ImageAnalysis
+import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -62,85 +43,97 @@ fun CameraNoteUIScreen(
 ) {
     val context = LocalContext.current
     val previewView: PreviewView = remember { PreviewView(context) }
-    val cameraController = remember { LifecycleCameraController(context) }
+    val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
     val lifecycleOwner = LocalLifecycleOwner.current
-    cameraController.bindToLifecycle(lifecycleOwner)
-    cameraController.cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
-    previewView.controller = cameraController
 
     val executor = remember { Executors.newSingleThreadExecutor() }
-    val textRecognizer =
-        remember { TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS) }
+    val textRecognizer = remember { TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS) }
 
-    var text by rememberSaveable {
-        mutableStateOf("")
-    }
+    var text by rememberSaveable { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
+    var cameraProvider: ProcessCameraProvider? by remember { mutableStateOf(null) }
+
+    LaunchedEffect(cameraProviderFuture) {
+        cameraProvider = cameraProviderFuture.get()
+    }
 
     Box(modifier = modifier) {
-
         Permission(
             permission = Manifest.permission.CAMERA,
             rationale = "You said you wanted to take a photo, so I'm going to have to ask for permission.",
             permissionNotAvailableContent = {
-                Column(modifier.padding(/*paddingValues*/)) {
+                Column(modifier.padding(16.dp)) {
                     Text("O noes! No Camera!")
                     Spacer(modifier = Modifier.height(8.dp))
                     Button(onClick = {
                         context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
                             data = Uri.fromParts("package", context.packageName, null)
                         })
-                    }
-                    ) { Text("Open Settings") }
+                    }) { Text("Open Settings") }
                 }
             }
-        )
+        ) {
+            AndroidView(factory = { previewView }, modifier = Modifier.fillMaxSize())
 
-        AndroidView(factory = { previewView }, modifier = Modifier.fillMaxSize())
-        if (isLoading) {
-            CircularProgressIndicator(
-                modifier = Modifier
-                    .size(50.dp)
-                    .align(Alignment.Center)
-            )
-        } else {
-            IconButton(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(16.dp),
-                onClick = {
-                    textFieldValue.value = TextFieldValue("Loading ... ")
-                    isLoading = true
-                    cameraController.setImageAnalysisAnalyzer(executor) { imageProxy ->
-                        imageProxy.image?.let { image ->
-                            val img = InputImage.fromMediaImage(
-                                image,
-                                imageProxy.imageInfo.rotationDegrees
-                            )
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier
+                        .size(50.dp)
+                        .align(Alignment.Center)
+                )
+            } else {
+                IconButton(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(16.dp),
+                    onClick = {
+                        textFieldValue.value = TextFieldValue("Loading ... ")
+                        isLoading = true
 
-                            textRecognizer.process(img).addOnCompleteListener { task ->
-                                isLoading = false
-                                text =
-                                    if (!task.isSuccessful) task.exception!!.localizedMessage.toString()
-                                    else task.result.text
+                        cameraProvider?.let { provider ->
+                            val imageAnalysis = ImageAnalysis.Builder()
+                                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                                .build()
 
-                                onEvent(MLEvent.GetTextFromImg(text))
-                                textFieldValue.value = TextFieldValue(text)
-                                Log.d("CameraXSample", "Text: $text")
+                            imageAnalysis.setAnalyzer(executor) { imageProxy ->
+                                val image = imageProxy.image
+                                if (image != null) {
+                                    val img = InputImage.fromMediaImage(image, imageProxy.imageInfo.rotationDegrees)
+                                    textRecognizer.process(img)
+                                        .addOnCompleteListener { task ->
+                                            isLoading = false
+                                            text = if (!task.isSuccessful) {
+                                                task.exception?.localizedMessage.toString()
+                                            } else {
+                                                task.result.text
+                                            }
 
-                                cameraController.clearImageAnalysisAnalyzer()
-                                imageProxy.close()
+                                            onEvent(MLEvent.GetTextFromImg(text))
+                                            textFieldValue.value = TextFieldValue(text)
+                                            Log.d("CameraXSample", "Text: $text")
+
+                                            imageProxy.close()
+                                            provider.unbind(imageAnalysis)
+                                        }
+                                }
+                            }
+
+                            try {
+                                provider.unbindAll()
+                                provider.bindToLifecycle(lifecycleOwner, CameraSelector.DEFAULT_BACK_CAMERA, imageAnalysis)
+                            } catch (exc: Exception) {
+                                Log.e("CameraXSample", "Use case binding failed", exc)
                             }
                         }
                     }
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.add_a_photo),// .photodo_icon),
+                        contentDescription = "",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(54.dp)
+                    )
                 }
-            ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.add_a_photo),// .photodo_icon),
-                    contentDescription = "",
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(54.dp)
-                )
             }
         }
     }
@@ -148,36 +141,38 @@ fun CameraNoteUIScreen(
     if (text.isNotEmpty()) {
         AlertDialog(onDismissRequest = {
             text = ""
-            isExpanded()}) {
+            isExpanded()
+        }) {
             Card(modifier = Modifier.fillMaxWidth(0.8f)) {
-                Text(
-                    text = text,
-                    modifier = Modifier
-                        .padding(horizontal = 16.dp)
-                        .padding(top = 16.dp),
-                    style = MaterialTheme.typography.bodySmall
-                )
-                Button(
-                    onClick = {
-                        text = ""
-                        isExpanded() },
-                    modifier = Modifier
-                        .align(Alignment.End)
-                        .padding(horizontal = 16.dp, vertical = 16.dp)
-                ) {
-                    Text(text = "Done")
+                Column {
+                    Text(
+                        text = text,
+                        modifier = Modifier
+                            .padding(horizontal = 16.dp)
+                            .padding(top = 16.dp),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    Button(
+                        onClick = {
+                            text = ""
+                            isExpanded()
+                        },
+                        modifier = Modifier
+                            .align(Alignment.End)
+                            .padding(horizontal = 16.dp, vertical = 16.dp)
+                    ) {
+                        Text(text = "Done")
+                    }
                 }
             }
         }
     }
 }
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Preview
 @Composable
 fun CSP() {
-    //CameraXSampleTheme {
-    var textFieldValue = remember { mutableStateOf(TextFieldValue()) }
+    val textFieldValue = remember { mutableStateOf(TextFieldValue()) }
     CameraNoteUIScreen(onEvent = { }, textFieldValue = textFieldValue, isExpanded = {})
 }

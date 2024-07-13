@@ -222,7 +222,7 @@ internal fun MLContent(
     var result by rememberSaveable { mutableStateOf(result) }
     var images = remember { mutableStateListOf(*initialImagePaths) }
     var isCameraVisible by remember { mutableStateOf(false) }
-    var isCameraNoteVisible by remember { mutableStateOf(true) }
+    var isCameraNoteVisible by remember { mutableStateOf(false) }
     var isRecording by remember { mutableStateOf(false) }
     var speechText by rememberSaveable { mutableStateOf("") }
     var seconds by remember { mutableStateOf(0) }
@@ -280,7 +280,7 @@ internal fun MLContent(
                 .align(Alignment.CenterHorizontally)
         )
 
-        if (isCameraVisible) {
+        if (isCameraVisible || isCameraNoteVisible) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -290,25 +290,32 @@ internal fun MLContent(
                     .background(MaterialTheme.colorScheme.surface)
                     .border(BorderStroke(2.dp, MaterialTheme.colorScheme.primary))
             ) {
-                FixImage(
-                    modifier = Modifier.fillMaxSize(),
-                    onImageFile = { file ->
-                        // Replace the current list of images with the new image file path
-                        images.add(file.path)
-                        isCameraVisible = false // Hide the camera after capturing the image
-                    },
-                    /*onError = { message ->
-                        errorMessage = message
-                        showError = true
-                    }*/
-                )
-            }
-            if(isCameraNoteVisible){
-                CameraNoteUIScreen(
-                    onEvent = onEvent,
-                    textFieldValue = textFieldValue,
-                    isExpanded = { } //isCameraNoteVisible = false }
-                )
+                if (isCameraVisible) {
+                    CameraNoteUIScreen(
+                        onEvent = onEvent,
+                        textFieldValue = textFieldValue,
+                        isExpanded = { isCameraNoteVisible = false }
+                    )
+                    FixImage(
+                        modifier = Modifier.fillMaxSize(),
+                        onImageFile = { file ->
+                            // Replace the current list of images with the new image file path
+                            images.add(file.path)
+                            isCameraVisible = false // Hide the camera after capturing the image
+                        },
+                        /*onError = { message ->
+                            errorMessage = message
+                            showError = true
+                        }*/
+                    )
+                } else if (isCameraNoteVisible){
+
+                    CameraNoteUIScreen(
+                        onEvent = onEvent,
+                        textFieldValue = textFieldValue,
+                        isExpanded = { isCameraNoteVisible = false }
+                    )
+                }
             }
         } else {
             Row(
@@ -354,7 +361,10 @@ internal fun MLContent(
                 Spacer(modifier = Modifier.width(16.dp))
 
                 IconButton(
-                    onClick = { isCameraVisible = true },
+                    onClick = {
+                        isCameraNoteVisible = true
+                              isCameraVisible = false
+                              },
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
                         .size(64.dp) // Adjust the size as needed
