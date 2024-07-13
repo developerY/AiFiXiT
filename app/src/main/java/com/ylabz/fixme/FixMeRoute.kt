@@ -6,7 +6,6 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.drawable.BitmapDrawable
 import android.os.Build
-import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -27,9 +26,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AddLocation
 import androidx.compose.material.icons.filled.Camera
-import androidx.compose.material.icons.filled.Mic
-import androidx.compose.material.icons.filled.NoteAlt
+import androidx.compose.material.icons.filled.PostAdd
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -42,6 +41,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -58,6 +58,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -68,6 +69,7 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.ylabz.fixme.ui.FixImage
+import com.ylabz.fixme.ui.camera.CameraNoteUIScreen
 import com.ylabz.fixme.ui.core.Loading
 import com.ylabz.fixme.ui.mic.SpeechCaptureUI
 import kotlinx.coroutines.delay
@@ -220,10 +222,12 @@ internal fun MLContent(
     var result by rememberSaveable { mutableStateOf(result) }
     var images = remember { mutableStateListOf(*initialImagePaths) }
     var isCameraVisible by remember { mutableStateOf(false) }
-    var isCameraNoteVisible by remember { mutableStateOf(false) }
+    var isCameraNoteVisible by remember { mutableStateOf(true) }
     var isRecording by remember { mutableStateOf(false) }
     var speechText by rememberSaveable { mutableStateOf("") }
     var seconds by remember { mutableStateOf(0) }
+
+    var textFieldValue = remember { mutableStateOf(TextFieldValue()) }
 
     val permissionState = rememberPermissionState(Manifest.permission.RECORD_AUDIO)
     // Observe changes in the permission state and trigger recomposition
@@ -244,6 +248,11 @@ internal fun MLContent(
             }
             seconds++
             delay(100L)
+
+            if (seconds >= 50) {
+                isRecording = false
+                seconds = 0
+            }
         }
     }
 
@@ -294,6 +303,13 @@ internal fun MLContent(
                     }*/
                 )
             }
+            if(isCameraNoteVisible){
+                CameraNoteUIScreen(
+                    onEvent = onEvent,
+                    textFieldValue = textFieldValue,
+                    isExpanded = { } //isCameraNoteVisible = false }
+                )
+            }
         } else {
             Row(
                 modifier = Modifier
@@ -314,67 +330,26 @@ internal fun MLContent(
                 }
 
                 Spacer(modifier = Modifier.width(16.dp))
-                SpeechCaptureUI(
-                    hasPermission = hasPermission,
-                    updateText = {},//{ desTxt -> text = desTxt },
-                    onEvent = onEvent
-                )
 
-                Box(
-                    modifier = Modifier
-                        //.fillMaxSize()
-                    //.padding(paddingValues)
-                    //.align(Alignment.Center)
-                ) {
-                    IconButton(
-                        onClick = { isRecording = !isRecording
+                Box() {
 
-                                if (isRecording) {
-                                    Log.d("Photodo", "Start recoding")
-                                    // Start the audio recording
-                                    //onEvent(AddPhotodoEvent.StartAudioRec)
-                                }
-                                if (!isRecording) {
-                                    //And save audio recording to a file
-                                    //onEvent(AddPhotodoEvent.SaveAudio)
-                                    //TODO: Drop the bar
-                                }
+                    SpeechCaptureUI(
+                        hasPermission = hasPermission,
+                        updateText = { desTxt -> speechText = desTxt },
+                        onEvent = onEvent,
+                        isRec = {isRecording = true}
+                    )
 
-                                  },
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .size(64.dp) // Adjust the size as needed
-                    ) {
-                        Icon(
-                            Icons.Default.Mic, // Use the Material3 mic icon
-                            contentDescription = stringResource(R.string.action_go),
-                            tint = if (isRecording) Color.Red else MaterialTheme.colorScheme.primary
-                        )
-                    }
-                    if (isRecording) {
-                        CircularProgressIndicator(
-                            progress = { progress },
-                            modifier = Modifier.align(Alignment.Center),
-                            //.fillMaxSize() // Set your desired size here
-                            //.padding(16.dp), // Optional padding
-                            color = Color.Black,
-                            strokeWidth = 4.dp,
-                        )
-                    }
-
-                    IconButton(
-                        onClick = { isRecording = !isRecording },
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .size(64.dp) // Adjust the size as needed
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Mic, // Use the Material3 mic icon
-                            contentDescription = stringResource(R.string.action_go),
-                            tint = if (isRecording) Color.Red else MaterialTheme.colorScheme.primary
-                        )
-                    }
+                    CircularProgressIndicator(
+                        progress = { progress },
+                        modifier = Modifier.align(Alignment.Center),
+                        //.fillMaxSize() // Set your desired size here
+                        //.padding(16.dp), // Optional padding
+                        color = Color.Red,
+                        strokeWidth = 4.dp,
+                    )
                 }
+
 
                 Spacer(modifier = Modifier.width(16.dp))
 
@@ -385,7 +360,20 @@ internal fun MLContent(
                         .size(64.dp) // Adjust the size as needed
                 ) {
                     Icon(
-                        imageVector = Icons.Default.NoteAlt, // Use the Material3 camera icon
+                        imageVector = Icons.Default.PostAdd, // Use the Material3 camera icon
+                        contentDescription = stringResource(R.string.action_go),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+
+                IconButton(
+                    onClick = { /* call GPS */ },
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .size(64.dp) // Adjust the size as needed
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AddLocation, // Use the Material3 camera icon
                         contentDescription = stringResource(R.string.action_go),
                         tint = MaterialTheme.colorScheme.primary
                     )
@@ -402,42 +390,86 @@ internal fun MLContent(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     item {
-                        if (images.isNotEmpty()) {
-                            Image(
-                                bitmap = bitmap.asImageBitmap(),
-                                contentDescription = "Captured Image",
-                                modifier = Modifier
-                                    .size(200.dp)
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .border(BorderStroke(4.dp, MaterialTheme.colorScheme.primary))
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .padding(end = 16.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .border(BorderStroke(2.dp, MaterialTheme.colorScheme.primary))
+                        ) {
+                            Text(
+                                text = "Captured Image",
+                                style = MaterialTheme.typography.bodyLarge,
+                                modifier = Modifier.padding(8.dp)
                             )
+                            if (images.isNotEmpty()) {
+                                Image(
+                                    bitmap = bitmap.asImageBitmap(),
+                                    contentDescription = "Captured Image",
+                                    modifier = Modifier
+                                        .size(200.dp)
+                                        .clip(RoundedCornerShape(16.dp))
+                                        .border(
+                                            BorderStroke(
+                                                4.dp,
+                                                MaterialTheme.colorScheme.primary
+                                            )
+                                        )
+                                )
+                            }
                         }
 
                         Spacer(modifier = Modifier.width(16.dp))
                     }
                     item {
-                        TextField(
-                            value = speechText,
-                            onValueChange = { speechText = it },
-                            label = { Text(text = "speak") }, //stringResource(R.string.speech_text_label)) },
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier
-                                .size(200.dp)
+                                .padding(end = 16.dp)
                                 .clip(RoundedCornerShape(16.dp))
                                 .border(BorderStroke(2.dp, MaterialTheme.colorScheme.primary))
-                        )
+                        ) {
+                            Text(
+                                text = "Speech Text",
+                                style = MaterialTheme.typography.bodyLarge,
+                                modifier = Modifier.padding(8.dp)
+                            )
+                            TextField(
+                                value = speechText,
+                                onValueChange = { speechText = it },
+                                label = { Text(text = speechText) }, //stringResource(R.string.speech_text_label)) },
+                                modifier = Modifier
+                                    .size(200.dp)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .border(BorderStroke(2.dp, MaterialTheme.colorScheme.primary))
+                            )
+                        }
                         Spacer(modifier = Modifier.width(16.dp))
 
                     }
                     item {
-                        TextField(
-                            value = speechText,
-                            onValueChange = { speechText = it },
-                            label = { Text(text = "speak") }, //stringResource(R.string.speech_text_label)) },
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier
-                                .size(200.dp)
+                                .padding(end = 16.dp)
                                 .clip(RoundedCornerShape(16.dp))
                                 .border(BorderStroke(2.dp, MaterialTheme.colorScheme.primary))
-                        )
+                        ) {
+                            Text(
+                                text = "Notes Text",
+                                style = MaterialTheme.typography.bodyLarge,
+                                modifier = Modifier.padding(8.dp)
+                            )
+                            TextField(
+                                value = textFieldValue.value,
+                                onValueChange = { textFieldValue.value = it },
+                                label = { textFieldValue.value }, //stringResource(R.string.speech_text_label)) },
+                                modifier = Modifier
+                                    .size(200.dp)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .border(BorderStroke(2.dp, MaterialTheme.colorScheme.primary))
+                            )
+                        }
                     }
                 }
             }
@@ -463,12 +495,15 @@ internal fun MLContent(
 
             Button(
                 onClick = {
-                    try {
-                        val bitmap = BitmapFactory.decodeFile(images[selectedImage.intValue])
-                        onEvent(MLEvent.GenAiResponseImg(bitmap, prompt))
-                    } catch (e: Exception) {
-                        errorMessage = e.message ?: "Unknown error"
-                        showError = true
+                    val imagePath = images.last()
+                    if (imagePath.isNotEmpty()) {
+                        try {
+                            val bitmap = BitmapFactory.decodeFile(imagePath)
+                            onEvent(MLEvent.GenAiResponseImg(bitmap, prompt))
+                        } catch (e: Exception) {
+                            errorMessage = e.message ?: "Unknown error"
+                            showError = true
+                        }
                     }
                 },
                 enabled = prompt.isNotEmpty(),
@@ -476,8 +511,25 @@ internal fun MLContent(
                     .clip(MaterialTheme.shapes.medium)
                     .shadow(4.dp, MaterialTheme.shapes.medium)
             ) {
-                Text(text = stringResource(R.string.action_go))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    // Display the image preview
+                    if (images.isNotEmpty()) {
+                        val imagePath = images.last()
+                        val bitmap = BitmapFactory.decodeFile(imagePath)
+                        if (bitmap != null) {
+                            Image(
+                                bitmap = bitmap.asImageBitmap(),
+                                contentDescription = "Image Preview",
+                                modifier = Modifier
+                                    .size(24.dp) // Adjust size as needed
+                                    .padding(end = 8.dp) // Adjust padding as needed
+                            )
+                        }
+                    }
+                    Text(text = "AI") // stringResource(R.string.action_go))
+                }
             }
+
         }
 
         var textColor = MaterialTheme.colorScheme.onSurface

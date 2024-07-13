@@ -8,4 +8,5 @@ sealed class MLEvent {
     data class SetMemo(val value: String) : MLEvent()
     data class GenAiResponseTxt(val value: String) : MLEvent()
     data class GenAiResponseImg(val value: Bitmap, val prompt: String) : MLEvent()
+    data class GetTextFromImg(val imgText: String) : MLEvent()
 }

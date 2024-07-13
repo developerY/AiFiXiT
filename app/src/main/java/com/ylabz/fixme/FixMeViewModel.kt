@@ -40,6 +40,7 @@ class FixMeViewModel(application: Application) : AndroidViewModel(application) {
                 event.value.let{ sendPrompt(it, "what is this") }
                 // sendPrompt()
             }
+
             is MLEvent.GenAiResponseTxt -> {
 
             }
@@ -51,6 +52,11 @@ class FixMeViewModel(application: Application) : AndroidViewModel(application) {
                         memo = "Needs Fixing",
                     )
                 }
+            }
+
+            is MLEvent.GetTextFromImg -> {
+                // Update the notes field.
+                event.imgText
             }
 
             is MLEvent.StartCaptureSpeech2Txt -> {
@@ -83,7 +89,8 @@ class FixMeViewModel(application: Application) : AndroidViewModel(application) {
                     _FixMe_uiState.value = FixMeUiState.Success(outputContent)
                 }
             } catch (e: Exception) {
-                _FixMe_uiState.value = FixMeUiState.Error(e.localizedMessage ?: "")
+                _FixMe_uiState.value = FixMeUiState.Success(e.localizedMessage ?: "")
+                //_FixMe_uiState.value = FixMeUiState.Error(e.localizedMessage ?: "")
             }
         }
     }

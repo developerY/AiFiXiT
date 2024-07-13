@@ -6,19 +6,25 @@ import android.provider.Settings
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.RecordVoiceOver
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.ylabz.fixme.MLEvent
+import com.ylabz.fixme.R
 import com.ylabz.fixme.ui.core.FeatureThatRequireMicPermission
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 
@@ -29,10 +35,11 @@ fun SpeechCaptureUI(
     hasPermission: Boolean,
     modifier: Modifier = Modifier,
     updateText: (String) -> Unit,
-    onEvent: (MLEvent) -> Unit
+    onEvent: (MLEvent) -> Unit,
+    isRec: () -> Unit
 ) {
     if (hasPermission) {
-        SpeechCaptureUIContent(modifier = modifier, updateText = updateText, onEvent = onEvent)
+        SpeechCaptureUIContent(modifier = modifier, updateText = updateText, onEvent = onEvent, isRec)
     } else {
         val context = LocalContext.current
         FeatureThatRequireMicPermission(
@@ -59,7 +66,8 @@ fun SpeechCaptureUI(
             SpeechCaptureUI(
                 hasPermission = hasPermission,
                 updateText = { desTxt -> onEvent(MLEvent.SetMemo(desTxt)) },
-                onEvent = onEvent
+                onEvent = onEvent,
+                isRec = isRec
             )
         }
     }
@@ -69,17 +77,23 @@ fun SpeechCaptureUI(
 fun SpeechCaptureUIContent(
     modifier: Modifier = Modifier,
     updateText: (String) -> Unit,
-    onEvent: (MLEvent) -> Unit
+    onEvent: (MLEvent) -> Unit,
+    isRec: () -> Unit
 ) {
     IconButton(
+
         onClick = {
             onEvent(MLEvent.StartCaptureSpeech2Txt(updateText) {})
+            isRec()
         },
+        modifier = Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .size(64.dp) // Adjust the size as needed
     ) {
         Icon(
-            Icons.Filled.RecordVoiceOver,
-            contentDescription = "voice recording",
-            //tint = Color.LightGray
+            imageVector = Icons.Default.Mic, // Use the Material3 camera icon
+            contentDescription = stringResource(R.string.action_go),
+            tint = MaterialTheme.colorScheme.primary
         )
     }
 }
@@ -93,6 +107,7 @@ fun SpeechCapturePreview() {
     SpeechCaptureUIContent(
         modifier = Modifier,
         updateText = {},
-        onEvent = {}
+        onEvent = {},
+        isRec = {}
     )
 }

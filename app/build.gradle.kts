@@ -72,6 +72,8 @@ dependencies {
 
     implementation(libs.coil.compose)
 
+    implementation(libs.play.services.mlkit.text.recognition)
+
     // Camera
     implementation(libs.androidx.camera.camera2)
     implementation(libs.androidx.camera.extensions)
