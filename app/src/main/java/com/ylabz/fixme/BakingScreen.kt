@@ -113,7 +113,7 @@ fun BakingScreen(
                         context.resources,
                         images[selectedImage.intValue]
                     )
-                    fixMeViewModel.sendPrompt(bitmap, prompt)
+                   // onEvent(MLEvent.GenAiResponseImg(prompt, bitmap))
                 },
                 enabled = prompt.isNotEmpty(),
                 modifier = Modifier

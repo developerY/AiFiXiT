@@ -18,37 +18,44 @@ import kotlinx.coroutines.launch
 
 
 
-class FixMeViewModel(application: Application) : AndroidViewModel(application) {//) : ViewModel() {
+
+class FixMeViewModel(application: Application) : AndroidViewModel(application) {
     private val context = getApplication<Application>().applicationContext
 
-    private val audioFun = AudioSysImpl(context) //TODO move to Repo
+    private val audioFun = AudioSysImpl(context) // TODO move to Repo
 
-    // Backing property to avoid state updates from other classes
-    private val _FixMe_uiState: MutableStateFlow<FixMeUiState> = MutableStateFlow(FixMeUiState.Success(""))
+    private val _FixMe_uiState: MutableStateFlow<FixMeUiState> =
+        MutableStateFlow(FixMeUiState.Success(""))
     val fixMeUiState: StateFlow<FixMeUiState> = _FixMe_uiState.asStateFlow()
 
     private val generativeModel = GenerativeModel(
         modelName = "gemini-pro-vision",
-        // Access your API key as a Build Configuration variable
         apiKey = BuildConfig.apiKeyGem
+    )
+
+    private val chat = generativeModel.startChat(
+        /*history = listOf(
+            content(role = "user") { text("Hello, Need this fixed.") },
+            content(role = "model") { text("Great to meet you. What would you like fixed?") }
+        )*/
     )
 
     fun onEvent(event: MLEvent) {
         when (event) {
-            // This is for the title
+
             is MLEvent.GenAiResponseImg -> {
-                event.value.let{ sendPrompt(event.value, event.prompt) }
-                // sendPrompt()
+                sendChatWithImage(event.prompt, event.value)
+                //sendPromptNOTUSED(event.value, event.prompt)
             }
 
             is MLEvent.GenAiResponseTxt -> {
-
+                sendChat(event.value)
             }
 
             is MLEvent.SetMemo -> {
                 viewModelScope.launch {
-                    _FixMe_uiState.value  = FixMeUiState.Success(
-                        outputText ="String",
+                    _FixMe_uiState.value = FixMeUiState.Success(
+                        outputText = "String",
                         memo = "Needs Fixing",
                     )
                 }
@@ -61,22 +68,47 @@ class FixMeViewModel(application: Application) : AndroidViewModel(application) {
 
             is MLEvent.StartCaptureSpeech2Txt -> {
                 viewModelScope.launch {
-                    // actual work happens in the use case.
                     audioFun.startSpeechToText(event.updateText, event.finished)
-                    //_eventFlow.emit(AddPhotodoEvent.getTextFromSpeach)
-                    // Not sure what to do ...
                 }
             }
         }
     }
 
-
-    fun sendPrompt(
-        bitmap: Bitmap,
-        prompt: String
-    ) {
+    private fun sendChatWithImage(prompt: String, image: Bitmap? = null) {
         _FixMe_uiState.value = FixMeUiState.Loading
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val response = chat.sendMessage(
+                    content(role = "user") {
+                        text(prompt)
+                        image?.let { image(it) }
+                    }
+                )
+                response.text?.let { outputContent ->
+                    _FixMe_uiState.value = FixMeUiState.Success(outputContent)
+                }
+            } catch (e: Exception) {
+                _FixMe_uiState.value = FixMeUiState.Error(e.localizedMessage ?: "Error")
+            }
+        }
+    }
 
+    private fun sendChat(prompt: String) {
+        _FixMe_uiState.value = FixMeUiState.Loading
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val response = chat.sendMessage(content(role = "user") { text(prompt) })
+                response.text?.let { outputContent ->
+                    _FixMe_uiState.value = FixMeUiState.Success(outputContent)
+                }
+            } catch (e: Exception) {
+                _FixMe_uiState.value = FixMeUiState.Error(e.localizedMessage ?: "Error")
+            }
+        }
+    }
+
+    private fun sendPromptNOTUSED(bitmap: Bitmap, prompt: String) {
+        _FixMe_uiState.value = FixMeUiState.Loading
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val response = generativeModel.generateContent(
@@ -89,8 +121,7 @@ class FixMeViewModel(application: Application) : AndroidViewModel(application) {
                     _FixMe_uiState.value = FixMeUiState.Success(outputContent)
                 }
             } catch (e: Exception) {
-                _FixMe_uiState.value = FixMeUiState.Success(e.localizedMessage ?: "")
-                //_FixMe_uiState.value = FixMeUiState.Error(e.localizedMessage ?: "")
+                _FixMe_uiState.value = FixMeUiState.Error(e.localizedMessage ?: "Error")
             }
         }
     }

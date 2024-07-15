@@ -54,7 +54,7 @@ fun TabsVid() {
                         .padding(16.dp)
                 )
             }
-            3 -> YouTubeVideoView(videoId = "gBP1nP4NtCk")
+            3 -> Text("here")//YouTubeVideoView(videoId = "gBP1nP4NtCk")
         }
     }
 }

@@ -523,81 +523,27 @@ internal fun MLContent(
                 }
             }
         }
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 16.dp), // Use vertical padding for better spacing
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            if (images.isNotEmpty()) {
-                val imagePath = images.last()
-                val bitmap = BitmapFactory.decodeFile(imagePath)
-                if (bitmap != null) {
-                    Image(
-                        bitmap = bitmap.asImageBitmap(),
-                        contentDescription = "Image Preview",
-                        modifier = Modifier
-                            .size(43.dp) // Adjust size as needed
-                            .clip(MaterialTheme.shapes.medium)
-                            .shadow(4.dp, MaterialTheme.shapes.medium)
-                            .background(MaterialTheme.colorScheme.background) // Use background color
-                    )
-                }
-            }
 
-            Spacer(modifier = Modifier.weight(0.1f)) // Add a small spacer for separation
 
-            TextField(
-                value = prompt,
-                label = { Text(stringResource(R.string.label_prompt)) },
-                onValueChange = { prompt = it },
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 8.dp)
-                    .clip(MaterialTheme.shapes.medium)
-                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)) // Subtle background
-                    .shadow(4.dp, MaterialTheme.shapes.medium)
+            FourTextAreasTabs(
+                geminiText = "text1",
+                geminiText1 = "text2",
+                geminiText2 = "text3",
+                geminiText3 = "text4",
+                speechText = "speechText",
+                images = images,
+                textFieldValue = TextFieldValue("textFieldValue"),
+                onEvent = {},
+                errorMessage = "Error occurred",
+                showError = true,
+                onErrorDismiss = {}
             )
-
-            Spacer(modifier = Modifier.weight(0.1f)) // Add another small spacer
-
-            Button(
-                onClick = {
-                    val imagePath = images.last()
-                    if (imagePath.isNotEmpty()) {
-                        // add the other info to the prompt
-                        prompt = prompt + "\n" + speechText + "\nInfo: " + textFieldValue.value +
-                                "\n Please explain steps to fix it." +
-                                "\nPlease include a parts list with a price for each item and a total budget. " +
-                                "And if possible, include a local business in Palo Alto CA to fix it "
-                        Log.d("MLContent", "Prompt: $prompt")
-                        try {
-                            val bitmap = BitmapFactory.decodeFile(imagePath)
-                            onEvent(MLEvent.GenAiResponseImg(bitmap, prompt))
-                        } catch (e: Exception) {
-                            errorMessage = e.message ?: "Unknown error"
-                            showError = true
-                        }
-                    }
-                },
-                enabled = prompt.isNotEmpty(),
-                modifier = Modifier
-                    .clip(MaterialTheme.shapes.medium)
-                    .shadow(4.dp, MaterialTheme.shapes.medium)
-                    .fillMaxWidth(0.2f) // Allocate 20% width for Button
-            ) {
-                Text(text = stringResource(R.string.action_go)) // Use string resource for text
-            }
-        }
-
-        // FourTextAreas(texts = listOf("Text 1", "Text 2", "Text 3", "Text 4"))
-
-        // FourTextAreasTabs(geminiText, geminiText, geminiText, geminiText)
+            // FourTextAreasTabs(geminiText, geminiText, geminiText, geminiText)
 
 
-        var textColor = MaterialTheme.colorScheme.onSurface
+            var textColor = MaterialTheme.colorScheme.onSurface
 
-        val scrollState = rememberScrollState()
+            /*val scrollState = rememberScrollState()
         Text(
             text = result,
             textAlign = TextAlign.Start,
@@ -609,7 +555,9 @@ internal fun MLContent(
                 .clip(MaterialTheme.shapes.medium)
                 .background(MaterialTheme.colorScheme.surfaceVariant)
                 .shadow(4.dp, MaterialTheme.shapes.medium)
-        )
+        )*/
+
+
     }
 }
 
