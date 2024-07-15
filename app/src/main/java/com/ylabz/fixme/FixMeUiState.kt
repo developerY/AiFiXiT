@@ -17,6 +17,7 @@ sealed interface FixMeUiState {
     data class Success(
         val outputText: String,
         var memo: String = "Needs Fixing",
+        var geminiResponse : String = ""
     ) : FixMeUiState
 
     /**

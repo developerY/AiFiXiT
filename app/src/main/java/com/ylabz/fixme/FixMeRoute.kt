@@ -6,11 +6,13 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.drawable.BitmapDrawable
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -29,6 +31,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddLocation
 import androidx.compose.material.icons.filled.Camera
 import androidx.compose.material.icons.filled.PostAdd
+import androidx.compose.material.icons.twotone.UnfoldLess
+import androidx.compose.material.icons.twotone.UnfoldMore
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -41,7 +45,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -69,6 +72,7 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.ylabz.fixme.ui.FixImage
+import com.ylabz.fixme.ui.FourTextAreasTabs
 import com.ylabz.fixme.ui.camera.CameraNoteUIScreen
 import com.ylabz.fixme.ui.core.Loading
 import com.ylabz.fixme.ui.mic.SpeechCaptureUI
@@ -107,6 +111,7 @@ internal fun MLScreen(
     fixMeUiState: FixMeUiState,
     //navTo: (String) -> Unit,
 ) {
+    var textFieldValue = remember { mutableStateOf(TextFieldValue()) }
 
     when (fixMeUiState) {
         /*
@@ -123,17 +128,19 @@ internal fun MLScreen(
                 result = (fixMeUiState as FixMeUiState.Success).outputText
             }
          */
-        is FixMeUiState.Success -> MLContent(
-            modifier,
-            //paddingValues = paddingValues,
-            //lifeCycCamCont = lifeCycCamCont,
-            onEvent = onEvent,
-            result = fixMeUiState.outputText
-            //imgClassID = mlUiState.data,
-            //screenAI = mlUiState.currentScreen,
-            //genAIRes = mlUiState.aiResponse,
-            //navTo = navTo
-        )
+
+        is FixMeUiState.Success ->
+            MLContent(
+                modifier,
+                //paddingValues = paddingValues,
+                //lifeCycCamCont = lifeCycCamCont,
+                onEvent = onEvent,
+                result = fixMeUiState.outputText
+                //imgClassID = mlUiState.data,
+                //screenAI = mlUiState.currentScreen,
+                //genAIRes = mlUiState.aiResponse,
+                //navTo = navTo
+            )
 
         //fixMeUiState.Error -> TODO()
         /*
@@ -143,7 +150,7 @@ internal fun MLScreen(
          */
         is FixMeUiState.Error -> {
             val textColor = MaterialTheme.colorScheme.error
-            val result = (fixMeUiState as FixMeUiState.Error).errorMessage
+            val result = fixMeUiState.errorMessage
         }
         // FixMeUiState.Initial -> TODO()
         // is FixMeUiState.Success -> TODO()
@@ -171,7 +178,6 @@ fun drawableToFilePath(context: Context, drawableId: Int, fileName: String): Str
 
     return file.path
 }
-
 
 
 fun drawableToFilePathList(context: Context, drawableId: Int, fileName: String): String {
@@ -203,7 +209,6 @@ private val initialImageDescriptions = arrayOf(
 )
 
 
-
 @RequiresApi(Build.VERSION_CODES.S)
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
@@ -226,6 +231,8 @@ internal fun MLContent(
     var isRecording by remember { mutableStateOf(false) }
     var speechText by rememberSaveable { mutableStateOf("") }
     var seconds by remember { mutableStateOf(0) }
+    var geminiText by rememberSaveable { mutableStateOf("Genuis Text") }
+
 
     var textFieldValue = remember { mutableStateOf(TextFieldValue()) }
 
@@ -236,6 +243,9 @@ internal fun MLContent(
 
     var showError by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
+
+    Spacer(modifier = Modifier.height(16.dp))
+    var isTopHalfVisible by remember { mutableStateOf(true) }
 
     // Add a progress bar to indicate recording progress
     var progress by remember { mutableStateOf(0f) }
@@ -272,156 +282,235 @@ internal fun MLContent(
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        Text(
-            text = stringResource(R.string.baking_title),
-            style = MaterialTheme.typography.titleLarge,
+        Row(
             modifier = Modifier
-                .padding(bottom = 16.dp)
-                .align(Alignment.CenterHorizontally)
-        )
+                .fillMaxWidth()
+        ) {
+            val icon = if (isTopHalfVisible) Icons.TwoTone.UnfoldLess else Icons.TwoTone.UnfoldMore
+            val textColor = if (isTopHalfVisible) Color(0xFF512DA8) else Color(0xFF0B7E71)
+            val iconTint = if (isTopHalfVisible) Color(0xFF512DA8) else Color(0xFF0B7E71)
+            Spacer(Modifier.weight(.5f)) // Assign weight to Spacer
 
-        if (isCameraVisible || isCameraNoteVisible) {
-            Box(
+            Text(
+                text = stringResource(R.string.baking_title),
+                style = MaterialTheme.typography.titleLarge,
+                color = textColor,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(300.dp) // Adjust the height as needed
-                    .padding(vertical = 16.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(MaterialTheme.colorScheme.surface)
-                    .border(BorderStroke(2.dp, MaterialTheme.colorScheme.primary))
-            ) {
-                if (isCameraVisible) {
-                    CameraNoteUIScreen(
-                        onEvent = onEvent,
-                        textFieldValue = textFieldValue,
-                        isExpanded = { isCameraNoteVisible = false }
-                    )
-                    FixImage(
-                        modifier = Modifier.fillMaxSize(),
-                        onImageFile = { file ->
-                            // Replace the current list of images with the new image file path
-                            images.add(file.path)
-                            isCameraVisible = false // Hide the camera after capturing the image
-                        },
-                        /*onError = { message ->
-                            errorMessage = message
-                            showError = true
-                        }*/
-                    )
-                } else if (isCameraNoteVisible){
+                    .padding(bottom = 16.dp)
+                    .weight(2f)
+            )
 
-                    CameraNoteUIScreen(
-                        onEvent = onEvent,
-                        textFieldValue = textFieldValue,
-                        isExpanded = { isCameraNoteVisible = false }
-                    )
-                }
-            }
-        } else {
-            Row(
+            Icon(
+                imageVector = icon,
+                contentDescription = "Expand/Collapse",
+                tint = iconTint,
                 modifier = Modifier
-                    .padding(vertical = 16.dp)
-                    .align(Alignment.CenterHorizontally)
-            ) {
-                IconButton(
-                    onClick = { isCameraVisible = true },
+                    .weight(.5f)
+                    .size(27.dp) // Adjust the size as needed
+                    .clickable {
+                        isTopHalfVisible = !isTopHalfVisible
+                    } // Toggle visibility on click
+            )
+        }
+        if (isTopHalfVisible) {
+            if (isCameraVisible || isCameraNoteVisible) {
+                Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .size(64.dp) // Adjust the size as needed
+                        .fillMaxWidth()
+                        .height(300.dp) // Adjust the height as needed
+                        .padding(vertical = 16.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(MaterialTheme.colorScheme.surface)
+                        .border(BorderStroke(2.dp, MaterialTheme.colorScheme.primary))
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Camera, // Use the Material3 camera icon
-                        contentDescription = stringResource(R.string.action_go),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
+                    if (isCameraVisible) {
+                        FixImage(
+                            modifier = Modifier.fillMaxSize(),
+                            onImageFile = { file ->
+                                // Replace the current list of images with the new image file path
+                                images.add(file.path)
+                                isCameraVisible = false // Hide the camera after capturing the image
+                            }
+                        )
+                    } else if (isCameraNoteVisible) {
+                        CameraNoteUIScreen(
+                            modifier = Modifier.fillMaxSize(), // Ensure it takes up the full size of the Box
+                            onEvent = onEvent,
+                            textFieldValue = textFieldValue,
+                            isExpanded = { isCameraNoteVisible = false }
+                        )
+                    }
                 }
-
-                Spacer(modifier = Modifier.width(16.dp))
-
-                Box() {
-
-                    SpeechCaptureUI(
-                        hasPermission = hasPermission,
-                        updateText = { desTxt -> speechText = desTxt },
-                        onEvent = onEvent,
-                        isRec = {isRecording = true}
-                    )
-
-                    CircularProgressIndicator(
-                        progress = { progress },
-                        modifier = Modifier.align(Alignment.Center),
-                        //.fillMaxSize() // Set your desired size here
-                        //.padding(16.dp), // Optional padding
-                        color = Color.Red,
-                        strokeWidth = 4.dp,
-                    )
-                }
-
-
-                Spacer(modifier = Modifier.width(16.dp))
-
-                IconButton(
-                    onClick = {
-                        isCameraNoteVisible = true
-                              isCameraVisible = false
-                              },
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .size(64.dp) // Adjust the size as needed
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.PostAdd, // Use the Material3 camera icon
-                        contentDescription = stringResource(R.string.action_go),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
-
-                IconButton(
-                    onClick = { /* call GPS */ },
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .size(64.dp) // Adjust the size as needed
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.AddLocation, // Use the Material3 camera icon
-                        contentDescription = stringResource(R.string.action_go),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
-
-            Column {
-                val imagePath = images.last()
-                val bitmap = BitmapFactory.decodeFile(imagePath)
-                LazyRow(
+            } else {
+                Row(
                     modifier = Modifier
                         .padding(vertical = 16.dp)
-                        .fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
+                        .align(Alignment.CenterHorizontally)
                 ) {
-                    item {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier
-                                .padding(end = 16.dp)
-                                .clip(RoundedCornerShape(16.dp))
-                                .border(BorderStroke(2.dp, MaterialTheme.colorScheme.primary))
-                        ) {
-                            Text(
-                                text = "Captured Image",
-                                style = MaterialTheme.typography.bodyLarge,
-                                modifier = Modifier.padding(8.dp)
-                            )
-                            if (images.isNotEmpty()) {
-                                Image(
-                                    bitmap = bitmap.asImageBitmap(),
-                                    contentDescription = "Captured Image",
+                    IconButton(
+                        onClick = { isCameraVisible = true },
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .size(64.dp) // Adjust the size as needed
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Camera, // Use the Material3 camera icon
+                            contentDescription = stringResource(R.string.action_go),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(16.dp))
+
+                    Box {
+                        SpeechCaptureUI(
+                            hasPermission = hasPermission,
+                            updateText = { desTxt -> speechText = desTxt },
+                            onEvent = onEvent,
+                            isRec = { isRecording = true }
+                        )
+
+                        CircularProgressIndicator(
+                            progress = { progress },
+                            modifier = Modifier.align(Alignment.Center),
+                            //.fillMaxSize() // Set your desired size here
+                            //.padding(16.dp), // Optional padding
+                            color = Color.Red,
+                            strokeWidth = 4.dp,
+                        )
+                    }
+
+
+                    Spacer(modifier = Modifier.width(16.dp))
+
+                    IconButton(
+                        onClick = {
+                            isCameraNoteVisible = true
+                            isCameraVisible = false
+                        },
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .size(64.dp) // Adjust the size as needed
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PostAdd, // Use the Material3 camera icon
+                            contentDescription = stringResource(R.string.action_go),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+
+                    IconButton(
+                        onClick = {
+                            geminiText.plus(" did work")
+                            /* call GPS */
+                        },
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .size(64.dp) // Adjust the size as needed
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AddLocation, // Use the Material3 camera icon
+                            contentDescription = stringResource(R.string.action_go),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+
+                Column {
+                    val imagePath = images.last()
+                    val bitmap = BitmapFactory.decodeFile(imagePath)
+                    LazyRow(
+                        modifier = Modifier
+                            .padding(vertical = 16.dp)
+                            .fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        item {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier
+                                    .padding(end = 16.dp)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .border(BorderStroke(2.dp, MaterialTheme.colorScheme.primary))
+                            ) {
+                                Text(
+                                    text = "Captured Image",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    modifier = Modifier.padding(8.dp)
+                                )
+                                if (images.isNotEmpty()) {
+                                    Image(
+                                        bitmap = bitmap.asImageBitmap(),
+                                        contentDescription = "Captured Image",
+                                        modifier = Modifier
+                                            .size(200.dp)
+                                            .clip(RoundedCornerShape(16.dp))
+                                            .border(
+                                                BorderStroke(
+                                                    4.dp,
+                                                    MaterialTheme.colorScheme.primary
+                                                )
+                                            )
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.width(16.dp))
+                        }
+                        item {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier
+                                    .padding(end = 16.dp)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .border(BorderStroke(2.dp, MaterialTheme.colorScheme.primary))
+                            ) {
+                                Text(
+                                    text = "Speech Text",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    modifier = Modifier.padding(8.dp)
+                                )
+                                TextField(
+                                    value = speechText,
+                                    onValueChange = { speechText = it },
+                                    label = { Text(text = speechText) }, //stringResource(R.string.speech_text_label)) },
                                     modifier = Modifier
                                         .size(200.dp)
                                         .clip(RoundedCornerShape(16.dp))
                                         .border(
                                             BorderStroke(
-                                                4.dp,
+                                                2.dp,
+                                                MaterialTheme.colorScheme.primary
+                                            )
+                                        )
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(16.dp))
+
+                        }
+                        item {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier
+                                    .padding(end = 16.dp)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .border(BorderStroke(2.dp, MaterialTheme.colorScheme.primary))
+                            ) {
+                                Text(
+                                    text = "Notes Text",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    modifier = Modifier.padding(8.dp)
+                                )
+                                TextField(
+                                    value = textFieldValue.value,
+                                    onValueChange = { textFieldValue.value = it },
+                                    label = { textFieldValue.value }, //stringResource(R.string.speech_text_label)) },
+                                    modifier = Modifier
+                                        .size(200.dp)
+                                        .clip(RoundedCornerShape(16.dp))
+                                        .border(
+                                            BorderStroke(
+                                                2.dp,
                                                 MaterialTheme.colorScheme.primary
                                             )
                                         )
@@ -429,84 +518,59 @@ internal fun MLContent(
                             }
                         }
 
-                        Spacer(modifier = Modifier.width(16.dp))
                     }
-                    item {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier
-                                .padding(end = 16.dp)
-                                .clip(RoundedCornerShape(16.dp))
-                                .border(BorderStroke(2.dp, MaterialTheme.colorScheme.primary))
-                        ) {
-                            Text(
-                                text = "Speech Text",
-                                style = MaterialTheme.typography.bodyLarge,
-                                modifier = Modifier.padding(8.dp)
-                            )
-                            TextField(
-                                value = speechText,
-                                onValueChange = { speechText = it },
-                                label = { Text(text = speechText) }, //stringResource(R.string.speech_text_label)) },
-                                modifier = Modifier
-                                    .size(200.dp)
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .border(BorderStroke(2.dp, MaterialTheme.colorScheme.primary))
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(16.dp))
 
-                    }
-                    item {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier
-                                .padding(end = 16.dp)
-                                .clip(RoundedCornerShape(16.dp))
-                                .border(BorderStroke(2.dp, MaterialTheme.colorScheme.primary))
-                        ) {
-                            Text(
-                                text = "Notes Text",
-                                style = MaterialTheme.typography.bodyLarge,
-                                modifier = Modifier.padding(8.dp)
-                            )
-                            TextField(
-                                value = textFieldValue.value,
-                                onValueChange = { textFieldValue.value = it },
-                                label = { textFieldValue.value }, //stringResource(R.string.speech_text_label)) },
-                                modifier = Modifier
-                                    .size(200.dp)
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .border(BorderStroke(2.dp, MaterialTheme.colorScheme.primary))
-                            )
-                        }
-                    }
                 }
             }
         }
-
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 16.dp),
+                .padding(vertical = 16.dp), // Use vertical padding for better spacing
             verticalAlignment = Alignment.CenterVertically
         ) {
+            if (images.isNotEmpty()) {
+                val imagePath = images.last()
+                val bitmap = BitmapFactory.decodeFile(imagePath)
+                if (bitmap != null) {
+                    Image(
+                        bitmap = bitmap.asImageBitmap(),
+                        contentDescription = "Image Preview",
+                        modifier = Modifier
+                            .size(43.dp) // Adjust size as needed
+                            .clip(MaterialTheme.shapes.medium)
+                            .shadow(4.dp, MaterialTheme.shapes.medium)
+                            .background(MaterialTheme.colorScheme.background) // Use background color
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.weight(0.1f)) // Add a small spacer for separation
+
             TextField(
                 value = prompt,
                 label = { Text(stringResource(R.string.label_prompt)) },
                 onValueChange = { prompt = it },
                 modifier = Modifier
                     .weight(1f)
-                    .padding(end = 8.dp)
+                    .padding(horizontal = 8.dp)
                     .clip(MaterialTheme.shapes.medium)
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)) // Subtle background
                     .shadow(4.dp, MaterialTheme.shapes.medium)
             )
+
+            Spacer(modifier = Modifier.weight(0.1f)) // Add another small spacer
 
             Button(
                 onClick = {
                     val imagePath = images.last()
                     if (imagePath.isNotEmpty()) {
+                        // add the other info to the prompt
+                        prompt = prompt + "\n" + speechText + "\nInfo: " + textFieldValue.value +
+                                "\n Please explain steps to fix it." +
+                                "\nPlease include a parts list with a price for each item and a total budget. " +
+                                "And if possible, include a local business in Palo Alto CA to fix it "
+                        Log.d("MLContent", "Prompt: $prompt")
                         try {
                             val bitmap = BitmapFactory.decodeFile(imagePath)
                             onEvent(MLEvent.GenAiResponseImg(bitmap, prompt))
@@ -520,27 +584,16 @@ internal fun MLContent(
                 modifier = Modifier
                     .clip(MaterialTheme.shapes.medium)
                     .shadow(4.dp, MaterialTheme.shapes.medium)
+                    .fillMaxWidth(0.2f) // Allocate 20% width for Button
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    // Display the image preview
-                    if (images.isNotEmpty()) {
-                        val imagePath = images.last()
-                        val bitmap = BitmapFactory.decodeFile(imagePath)
-                        if (bitmap != null) {
-                            Image(
-                                bitmap = bitmap.asImageBitmap(),
-                                contentDescription = "Image Preview",
-                                modifier = Modifier
-                                    .size(24.dp) // Adjust size as needed
-                                    .padding(end = 8.dp) // Adjust padding as needed
-                            )
-                        }
-                    }
-                    Text(text = "AI") // stringResource(R.string.action_go))
-                }
+                Text(text = stringResource(R.string.action_go)) // Use string resource for text
             }
-
         }
+
+        // FourTextAreas(texts = listOf("Text 1", "Text 2", "Text 3", "Text 4"))
+
+        // FourTextAreasTabs(geminiText, geminiText, geminiText, geminiText)
+
 
         var textColor = MaterialTheme.colorScheme.onSurface
 

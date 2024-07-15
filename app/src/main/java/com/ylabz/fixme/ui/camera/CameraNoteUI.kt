@@ -8,6 +8,7 @@ import android.util.Log
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.ImageCapture
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.layout.*
@@ -23,7 +24,10 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.LifecycleOwner
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberPermissionState
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
@@ -41,47 +45,60 @@ fun CameraNoteUIScreen(
     textFieldValue: MutableState<TextFieldValue>,
     isExpanded: () -> Unit
 ) {
+
     val context = LocalContext.current
-    val previewView: PreviewView = remember { PreviewView(context) }
+    val lifecycleOwner = context as LifecycleOwner
+
     val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
-    val lifecycleOwner = LocalLifecycleOwner.current
+    val cameraProvider = cameraProviderFuture.get()
+    val preview = androidx.camera.core.Preview.Builder().build()
+    val imageCapture = remember { ImageCapture.Builder().build() }
+
+    var hasPermission by remember { mutableStateOf(false) }
+    val permissionState = rememberPermissionState(Manifest.permission.CAMERA)
+
+    LaunchedEffect(Unit) {
+        permissionState.launchPermissionRequest()
+    }
+
+    if (permissionState.status.isGranted) {
+        hasPermission = true
+    }
+
+    val previewView: PreviewView = remember { PreviewView(context) }
 
     val executor = remember { Executors.newSingleThreadExecutor() }
     val textRecognizer = remember { TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS) }
 
     var text by rememberSaveable { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
-    var cameraProvider: ProcessCameraProvider? by remember { mutableStateOf(null) }
 
-    LaunchedEffect(cameraProviderFuture) {
-        cameraProvider = cameraProviderFuture.get()
-    }
 
     Box(modifier = modifier) {
-        Permission(
-            permission = Manifest.permission.CAMERA,
-            rationale = "You said you wanted to take a photo, so I'm going to have to ask for permission.",
-            permissionNotAvailableContent = {
-                Column(modifier.padding(16.dp)) {
-                    Text("O noes! No Camera!")
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Button(onClick = {
-                        context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                            data = Uri.fromParts("package", context.packageName, null)
-                        })
-                    }) { Text("Open Settings") }
-                }
-            }
-        ) {
-            AndroidView(factory = { previewView }, modifier = Modifier.fillMaxSize())
+        if (hasPermission) {
+            AndroidView(
+                modifier = Modifier.fillMaxSize(),
+                factory = { ctx ->
+                    val previewView = PreviewView(ctx)
+                    preview.setSurfaceProvider(previewView.surfaceProvider)
 
-            if (isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier
-                        .size(50.dp)
-                        .align(Alignment.Center)
-                )
-            } else {
+                    val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+
+                    try {
+                        cameraProvider.unbindAll()
+                        cameraProvider.bindToLifecycle(
+                            lifecycleOwner,
+                            cameraSelector,
+                            preview,
+                            imageCapture
+                        )
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+
+                    previewView
+                }
+            )
                 IconButton(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
@@ -136,7 +153,7 @@ fun CameraNoteUIScreen(
                 }
             }
         }
-    }
+
 
     if (text.isNotEmpty()) {
         AlertDialog(onDismissRequest = {

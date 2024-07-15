@@ -37,7 +37,7 @@ class FixMeViewModel(application: Application) : AndroidViewModel(application) {
         when (event) {
             // This is for the title
             is MLEvent.GenAiResponseImg -> {
-                event.value.let{ sendPrompt(it, "what is this") }
+                event.value.let{ sendPrompt(event.value, event.prompt) }
                 // sendPrompt()
             }
 
