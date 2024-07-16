@@ -29,7 +29,7 @@ class FixMeViewModel(application: Application) : AndroidViewModel(application) {
     val fixMeUiState: StateFlow<FixMeUiState> = _FixMe_uiState.asStateFlow()
 
     private val generativeModel = GenerativeModel(
-        modelName = "gemini-pro-vision",
+        modelName = "gemini-1.5-flash-latest",
         apiKey = BuildConfig.apiKeyGem
     )
 
@@ -45,6 +45,7 @@ class FixMeViewModel(application: Application) : AndroidViewModel(application) {
 
             is MLEvent.GenAiResponseImg -> {
                 sendChatWithImage(event.prompt, event.value)
+                Log.d("FixMe", "Called")
                 //sendPromptNOTUSED(event.value, event.prompt)
             }
 
@@ -75,7 +76,8 @@ class FixMeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun sendChatWithImage(prompt: String, image: Bitmap? = null) {
-        _FixMe_uiState.value = FixMeUiState.Loading
+        //_FixMe_uiState.value = FixMeUiState.Loading
+        Log.d("FixMe", "sendChatWithImage: $prompt")
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val response = chat.sendMessage(
@@ -87,8 +89,10 @@ class FixMeViewModel(application: Application) : AndroidViewModel(application) {
                 response.text?.let { outputContent ->
                     _FixMe_uiState.value = FixMeUiState.Success(outputContent)
                 }
+                Log.d("FixMe", "sendChatWithImage: ${response.text}")
             } catch (e: Exception) {
-                _FixMe_uiState.value = FixMeUiState.Error(e.localizedMessage ?: "Error")
+                _FixMe_uiState.value = FixMeUiState.Success(e.localizedMessage ?: "Error")
+                Log.d("FixMe", "sendChatWithImage: ${e.localizedMessage}")
             }
         }
     }

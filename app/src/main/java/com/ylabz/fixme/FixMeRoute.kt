@@ -80,7 +80,6 @@ import kotlinx.coroutines.delay
 import java.io.File
 import java.io.FileOutputStream
 
-
 @Composable
 fun MLRoute(
     //paddingValues: PaddingValues, // not using tabs yet.
@@ -215,7 +214,7 @@ private val initialImageDescriptions = arrayOf(
 internal fun MLContent(
     modifier: Modifier = Modifier,
     onEvent: (MLEvent) -> Unit,
-    result: String,
+    result: String = " the  answer goes here",
 ) {
     val context = LocalContext.current
     val initialImagePaths = InitImagePaths(context)
@@ -224,7 +223,7 @@ internal fun MLContent(
     val placeholderPrompt = stringResource(R.string.prompt_placeholder)
     val placeholderResult = stringResource(R.string.results_placeholder)
     var prompt by rememberSaveable { mutableStateOf(placeholderPrompt) }
-    var result by rememberSaveable { mutableStateOf(result) }
+
     var images = remember { mutableStateListOf(*initialImagePaths) }
     var isCameraVisible by remember { mutableStateOf(false) }
     var isCameraNoteVisible by remember { mutableStateOf(false) }
@@ -523,19 +522,19 @@ internal fun MLContent(
                 }
             }
         }
-
+        Column {
 
             FourTextAreasTabs(
-                geminiText = "text1",
+                geminiText = result,
                 geminiText1 = "text2",
                 geminiText2 = "text3",
-                geminiText3 = "text4",
-                speechText = "speechText",
+                geminiText3 = "ans4",
+                speechText = speechText,
                 images = images,
                 textFieldValue = TextFieldValue("textFieldValue"),
-                onEvent = {},
+                onEvent = onEvent,
                 errorMessage = "Error occurred",
-                showError = true,
+                showError = false,
                 onErrorDismiss = {}
             )
             // FourTextAreasTabs(geminiText, geminiText, geminiText, geminiText)
@@ -543,21 +542,21 @@ internal fun MLContent(
 
             var textColor = MaterialTheme.colorScheme.onSurface
 
-            /*val scrollState = rememberScrollState()
-        Text(
-            text = result,
-            textAlign = TextAlign.Start,
-            color = textColor,
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(scrollState)
-                .padding(16.dp)
-                .clip(MaterialTheme.shapes.medium)
-                .background(MaterialTheme.colorScheme.surfaceVariant)
-                .shadow(4.dp, MaterialTheme.shapes.medium)
-        )*/
+            val scrollState = rememberScrollState()
+            Text(
+                text = result,
+                textAlign = TextAlign.Start,
+                color = textColor,
+                modifier = Modifier
+                    .verticalScroll(scrollState)
+                    .padding(16.dp)
+                    .clip(MaterialTheme.shapes.medium)
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .shadow(4.dp, MaterialTheme.shapes.medium)
+            )
 
 
+        }
     }
 }
 
