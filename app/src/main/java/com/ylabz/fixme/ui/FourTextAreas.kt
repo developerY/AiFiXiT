@@ -37,10 +37,10 @@ import com.ylabz.fixme.R
 
 @Composable
 fun FourTextAreasTabs(
-    geminiText: ArrayList<String>,
+    geminiText: List<String>,
     image: String,
     speechText: String,
-    textFieldValue: TextFieldValue,
+    textFieldValue: String,
     onEvent: (MLEvent) -> Unit,
     errorMessage: String,
     showError: Boolean = false,
@@ -82,10 +82,10 @@ fun FourTextAreasTabs(
                 .padding(16.dp)
         ) {
             when (selectedTabIndex) {
-                0 -> PromptSection(selectedTabIndex, image, geminiText[selectedTabIndex], "Fix", "How to make", onEvent, textFieldValue, speechText, onErrorDismiss)
-                1 -> PromptSection(selectedTabIndex, image, geminiText[selectedTabIndex], "Parts", "What are the parts with price and budget", onEvent, textFieldValue, speechText, onErrorDismiss)
-                2 -> PromptSection(selectedTabIndex, image, geminiText[selectedTabIndex], "Steps", "What are the steps to fix it", onEvent, textFieldValue, speechText, onErrorDismiss)
-                3 -> PromptSection(selectedTabIndex, image, geminiText[selectedTabIndex], "Local", "What is a local business to help fix it", onEvent, textFieldValue, speechText, onErrorDismiss)
+                0 -> PromptSection(selectedTabIndex, image, geminiText.getOrNull(selectedTabIndex) ?: "", "Fix", "How to make", onEvent, textFieldValue, speechText, onErrorDismiss)
+                1 -> PromptSection(selectedTabIndex, image, geminiText.getOrNull(selectedTabIndex) ?: "", "Parts", "What are the parts with price and budget", onEvent, textFieldValue, speechText, onErrorDismiss)
+                2 -> PromptSection(selectedTabIndex, image, geminiText.getOrNull(selectedTabIndex) ?: "", "Steps", "What are the steps to fix it", onEvent, textFieldValue, speechText, onErrorDismiss)
+                3 -> PromptSection(selectedTabIndex, image, geminiText.getOrNull(selectedTabIndex) ?: "", "Local", "What is a local business to help fix it", onEvent, textFieldValue, speechText, onErrorDismiss)
             }
         }
     }
@@ -99,7 +99,7 @@ fun PromptSection(
     buttonText: String,
     initialPrompt: String,
     onEvent: (MLEvent) -> Unit,
-    textFieldValue: TextFieldValue,
+    textFieldValue: String,
     speechText: String,
     onErrorDismiss: () -> Unit
 ) {
@@ -116,8 +116,7 @@ fun PromptSection(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 if (images.isNotEmpty()) {
-                    val imagePath = images
-                    val bitmap = BitmapFactory.decodeFile(imagePath)
+                    val bitmap = BitmapFactory.decodeFile(images)
                     if (bitmap != null) {
                         Image(
                             bitmap = bitmap.asImageBitmap(),
@@ -162,8 +161,7 @@ fun PromptSection(
                     val completePrompt = "$prompt $speechText"
                     try {
                         if (images.isNotEmpty()) {
-                            val imagePath = images
-                            val bitmap = BitmapFactory.decodeFile(imagePath)
+                            val bitmap = BitmapFactory.decodeFile(images)
                             onEvent(MLEvent.GenAiResponseImg(completePrompt, bitmap, index))
                         }
                     } catch (e: Exception) {
@@ -190,15 +188,14 @@ fun PromptSection(
     }
 }
 
-
 @Preview(showBackground = true)
 @Composable
 fun PreviewFourTextAreasTabs() {
     FourTextAreasTabs(
-        ArrayList<String>(),
+        geminiText = listOf("How text", "Parts text", "Steps text", "Local text"),
         image = "imagePath",
         speechText = "speechText",
-        textFieldValue = TextFieldValue("textFieldValue"),
+        textFieldValue = "textFieldValue",
         onEvent = {},
         errorMessage = "Error occurred",
         showError = true,

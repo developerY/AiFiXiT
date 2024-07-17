@@ -84,16 +84,11 @@ fun MLRoute(
 ) {
     val onEvent = fixMeViewModel::onEvent
     val mlState by fixMeViewModel.fixMeUiState.collectAsStateWithLifecycle()
-    //val work: () -> LifecycleCameraController = fixMeViewModel::buildAna
 
     MLScreen(
-        //paddingValues = paddingValues,
-        //lifeCycCamCont = work,
         onEvent = onEvent,
-        fixMeUiState = mlState,
-        //navTo = navTo,
+        fixMeUiState = mlState
     )
-
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -101,56 +96,22 @@ fun MLRoute(
 @Composable
 internal fun MLScreen(
     modifier: Modifier = Modifier,
-    //paddingValues: PaddingValues,
-    //lifeCycCamCont: () -> LifecycleCameraController,
     onEvent: (MLEvent) -> Unit,
-    fixMeUiState: FixMeUiState,
-    //navTo: (String) -> Unit,
+    fixMeUiState: FixMeUiState
 ) {
-    var textFieldValue = remember { mutableStateOf(TextFieldValue()) }
 
     when (fixMeUiState) {
-        /*
-        if (fixMeUiState is FixMeUiState.Loading) {
-            CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
-         } else {
-         */
         FixMeUiState.Loading -> Loading(modifier)
-
-
-        /*
-        else if (fixMeUiState is FixMeUiState.Success) {
-                textColor = MaterialTheme.colorScheme.onSurface
-                result = (fixMeUiState as FixMeUiState.Success).outputText
-            }
-         */
-
-        is FixMeUiState.Success ->
-            MLContent(
-                modifier,
-                //paddingValues = paddingValues,
-                //lifeCycCamCont = lifeCycCamCont,
-                onEvent = onEvent,
-                result = fixMeUiState.geminiResponses
-                //imgClassID = mlUiState.data,
-                //screenAI = mlUiState.currentScreen,
-                //genAIRes = mlUiState.aiResponse,
-                //navTo = navTo
-            )
-
-        //fixMeUiState.Error -> TODO()
-        /*
-        if (fixMeUiState is FixMeUiState.Error) {
-                textColor = MaterialTheme.colorScheme.error
-                result = (fixMeUiState as FixMeUiState.Error).errorMessage
-         */
+        is FixMeUiState.Success -> MLContent(
+            modifier,
+            onEvent = onEvent,
+            result = fixMeUiState.geminiResponses
+        )
         is FixMeUiState.Error -> {
             val textColor = MaterialTheme.colorScheme.error
             val result = fixMeUiState.errorMessage
+            // Handle the error state UI here
         }
-        // FixMeUiState.Initial -> TODO()
-        // is FixMeUiState.Success -> TODO()
-        // TODO()
     }
 }
 
@@ -171,31 +132,13 @@ fun drawableToFilePath(context: Context, drawableId: Int, fileName: String): Str
     return file.path
 }
 
-
-fun drawableToFilePathList(context: Context, drawableId: Int, fileName: String): String {
-    // Get the drawable as a bitmap
-    val drawable = ContextCompat.getDrawable(context, drawableId)
-    val bitmap = (drawable as BitmapDrawable).bitmap
-
-    // Save the bitmap to a file
-    val file = File(context.filesDir, fileName)
-    FileOutputStream(file).use { out ->
-        bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
-    }
-
-    // Return the file path
-    return file.path
-}
-
-
 @OptIn(ExperimentalPermissionsApi::class)
 @RequiresApi(Build.VERSION_CODES.S)
 @Composable
 internal fun MLContent(
     modifier: Modifier = Modifier,
     onEvent: (MLEvent) -> Unit,
-    result: ArrayList<String>
-    //result: String = " the  answer goes here",
+    result: List<String>
 ) {
     val context = LocalContext.current
     val initialImagePath = InitImagePath(context)
@@ -210,24 +153,17 @@ internal fun MLContent(
     var isRecording by remember { mutableStateOf(false) }
     var speechText by rememberSaveable { mutableStateOf("") }
     var seconds by remember { mutableStateOf(0) }
-    var geminiText by rememberSaveable { mutableStateOf("Genuis Text") }
-
-
-    var textFieldValue = remember { mutableStateOf(TextFieldValue()) }
+    var progress by remember { mutableStateOf(0f) }
 
     val permissionState = rememberPermissionState(Manifest.permission.RECORD_AUDIO)
-    // Observe changes in the permission state and trigger recomposition
     val hasPermission by remember { derivedStateOf { permissionState.status.isGranted } }
-
 
     var showError by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
-
-    Spacer(modifier = Modifier.height(16.dp))
     var isTopHalfVisible by remember { mutableStateOf(true) }
 
-    // Add a progress bar to indicate recording progress
-    var progress by remember { mutableStateOf(0f) }
+    var textNoteFieldValue = remember { mutableStateOf(TextFieldValue()) }
+
 
     LaunchedEffect(isRecording) {
         while (isRecording) {
@@ -249,7 +185,7 @@ internal fun MLContent(
         Snackbar(
             action = {
                 TextButton(onClick = { showError = false }) {
-                    Text(text = "dismiss")// stringResource(R.string.dismiss))
+                    Text(text = "Dismiss")
                 }
             },
             modifier = Modifier.padding(16.dp)
@@ -262,13 +198,13 @@ internal fun MLContent(
             .padding(16.dp)
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
+            modifier = Modifier.fillMaxWidth()
         ) {
             val icon = if (isTopHalfVisible) Icons.TwoTone.UnfoldLess else Icons.TwoTone.UnfoldMore
             val textColor = if (isTopHalfVisible) Color(0xFF512DA8) else Color(0xFF0B7E71)
             val iconTint = if (isTopHalfVisible) Color(0xFF512DA8) else Color(0xFF0B7E71)
-            Spacer(Modifier.weight(.5f)) // Assign weight to Spacer
+
+            Spacer(Modifier.weight(0.5f))
 
             Text(
                 text = stringResource(R.string.baking_title),
@@ -284,38 +220,35 @@ internal fun MLContent(
                 contentDescription = "Expand/Collapse",
                 tint = iconTint,
                 modifier = Modifier
-                    .weight(.5f)
-                    .size(27.dp) // Adjust the size as needed
-                    .clickable {
-                        isTopHalfVisible = !isTopHalfVisible
-                    } // Toggle visibility on click
+                    .weight(0.5f)
+                    .size(27.dp)
+                    .clickable { isTopHalfVisible = !isTopHalfVisible }
             )
         }
+
         if (isTopHalfVisible) {
             if (isCameraVisible || isCameraNoteVisible) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(300.dp) // Adjust the height as needed
+                        .height(300.dp)
                         .padding(vertical = 16.dp)
                         .clip(RoundedCornerShape(16.dp))
                         .background(MaterialTheme.colorScheme.surface)
                         .border(BorderStroke(2.dp, MaterialTheme.colorScheme.primary))
                 ) {
-                    if (isCameraVisible) {
-                        FixImage(
+                    when {
+                        isCameraVisible -> FixImage(
                             modifier = Modifier.fillMaxSize(),
                             onImageFile = { file ->
-                                // Replace the current list of image with the new image file path
                                 image.value = file.path
-                                isCameraVisible = false // Hide the camera after capturing the image
+                                isCameraVisible = false
                             }
                         )
-                    } else if (isCameraNoteVisible) {
-                        CameraNoteUIScreen(
-                            modifier = Modifier.fillMaxSize(), // Ensure it takes up the full size of the Box
+                        isCameraNoteVisible -> CameraNoteUIScreen(
+                            modifier = Modifier.fillMaxSize(),
                             onEvent = onEvent,
-                            textFieldValue = textFieldValue,
+                            textFieldValue = textNoteFieldValue,
                             isExpanded = { isCameraNoteVisible = false }
                         )
                     }
@@ -330,10 +263,10 @@ internal fun MLContent(
                         onClick = { isCameraVisible = true },
                         modifier = Modifier
                             .clip(RoundedCornerShape(8.dp))
-                            .size(64.dp) // Adjust the size as needed
+                            .size(64.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Camera, // Use the Material3 camera icon
+                            imageVector = Icons.Default.Camera,
                             contentDescription = stringResource(R.string.action_go),
                             tint = MaterialTheme.colorScheme.primary
                         )
@@ -352,13 +285,10 @@ internal fun MLContent(
                         CircularProgressIndicator(
                             progress = { progress },
                             modifier = Modifier.align(Alignment.Center),
-                            //.fillMaxSize() // Set your desired size here
-                            //.padding(16.dp), // Optional padding
                             color = Color.Red,
-                            strokeWidth = 4.dp,
+                            strokeWidth = 4.dp
                         )
                     }
-
 
                     Spacer(modifier = Modifier.width(16.dp))
 
@@ -369,10 +299,10 @@ internal fun MLContent(
                         },
                         modifier = Modifier
                             .clip(RoundedCornerShape(8.dp))
-                            .size(64.dp) // Adjust the size as needed
+                            .size(64.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.PostAdd, // Use the Material3 camera icon
+                            imageVector = Icons.Default.PostAdd,
                             contentDescription = stringResource(R.string.action_go),
                             tint = MaterialTheme.colorScheme.primary
                         )
@@ -380,15 +310,15 @@ internal fun MLContent(
 
                     IconButton(
                         onClick = {
-                            geminiText.plus(" did work")
+                            //geminiText.plus(" did work")
                             /* call GPS */
                         },
                         modifier = Modifier
                             .clip(RoundedCornerShape(8.dp))
-                            .size(64.dp) // Adjust the size as needed
+                            .size(64.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.AddLocation, // Use the Material3 camera icon
+                            imageVector = Icons.Default.AddLocation,
                             contentDescription = stringResource(R.string.action_go),
                             tint = MaterialTheme.colorScheme.primary
                         )
@@ -396,8 +326,8 @@ internal fun MLContent(
                 }
 
                 Column {
-                    val imagePath = image
-                    val bitmap = BitmapFactory.decodeFile(imagePath.value)
+                    val imagePath = image.value
+                    val bitmap = BitmapFactory.decodeFile(imagePath)
                     LazyRow(
                         modifier = Modifier
                             .padding(vertical = 16.dp)
@@ -424,18 +354,14 @@ internal fun MLContent(
                                         modifier = Modifier
                                             .size(200.dp)
                                             .clip(RoundedCornerShape(16.dp))
-                                            .border(
-                                                BorderStroke(
-                                                    4.dp,
-                                                    MaterialTheme.colorScheme.primary
-                                                )
-                                            )
+                                            .border(BorderStroke(4.dp, MaterialTheme.colorScheme.primary))
                                     )
                                 }
                             }
 
                             Spacer(modifier = Modifier.width(16.dp))
                         }
+
                         item {
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -452,21 +378,16 @@ internal fun MLContent(
                                 TextField(
                                     value = speechText,
                                     onValueChange = { speechText = it },
-                                    label = { Text(text = "Speech Text") }, //stringResource(R.string.speech_text_label)) },
+                                    label = { Text(text = "Speech Text") },
                                     modifier = Modifier
                                         .size(200.dp)
                                         .clip(RoundedCornerShape(16.dp))
-                                        .border(
-                                            BorderStroke(
-                                                2.dp,
-                                                MaterialTheme.colorScheme.primary
-                                            )
-                                        )
+                                        .border(BorderStroke(2.dp, MaterialTheme.colorScheme.primary))
                                 )
                             }
                             Spacer(modifier = Modifier.width(16.dp))
-
                         }
+
                         item {
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -481,41 +402,32 @@ internal fun MLContent(
                                     modifier = Modifier.padding(8.dp)
                                 )
                                 TextField(
-                                    value = textFieldValue.value,
-                                    onValueChange = { textFieldValue.value = it },
-                                    label = { "Notes Text" }, //stringResource(R.string.speech_text_label)) },
+                                    value = textNoteFieldValue.value,
+                                    onValueChange = { textNoteFieldValue.value = it },
+                                    label = { Text(text = "Notes Text") },
                                     modifier = Modifier
                                         .size(200.dp)
                                         .clip(RoundedCornerShape(16.dp))
-                                        .border(
-                                            BorderStroke(
-                                                2.dp,
-                                                MaterialTheme.colorScheme.primary
-                                            )
-                                        )
+                                        .border(BorderStroke(2.dp, MaterialTheme.colorScheme.primary))
                                 )
                             }
                         }
-
                     }
-
                 }
             }
         }
-        Column {
 
-            FourTextAreasTabs(
-                geminiText = result,
-                speechText = speechText,
-                image = image.value,
-                textFieldValue = TextFieldValue("textFieldValue"),
-                onEvent = onEvent,
-                errorMessage = "Error occurred",
-                showError = false,
-                onErrorDismiss = {}
-            )
-            // FourTextAreasTabs(geminiText, geminiText, geminiText, geminiText)
-        }
+        FourTextAreasTabs(
+            geminiText = result,
+            speechText = speechText,
+            image = image.value,
+            textFieldValue = textNoteFieldValue.value.text,
+            onEvent = onEvent,
+            errorMessage = "Error occurred",
+            showError = false,
+            onErrorDismiss = {}
+        )
+
     }
 }
 
@@ -526,7 +438,7 @@ fun MLContentPreview() {
     MaterialTheme {
         MLContent(
             onEvent = {},
-            result = ArrayList<String>()
+            result = emptyList()
         )
     }
 }

@@ -25,7 +25,7 @@ class FixMeViewModel(application: Application) : AndroidViewModel(application) {
     private val audioFun = AudioSysImpl(context) // TODO move to Repo
 
     private val _FixMe_uiState: MutableStateFlow<FixMeUiState> =
-        MutableStateFlow(FixMeUiState.Success(""))
+        MutableStateFlow(FixMeUiState.Success())
     val fixMeUiState: StateFlow<FixMeUiState> = _FixMe_uiState.asStateFlow()
 
     private val generativeModel = GenerativeModel(
@@ -52,7 +52,6 @@ class FixMeViewModel(application: Application) : AndroidViewModel(application) {
                 viewModelScope.launch {
                     _FixMe_uiState.value = FixMeUiState.Success(
                         geminiResponses = old,
-                        memo = "Needs Fixing"
                     )
                 }
             }
@@ -89,13 +88,14 @@ class FixMeViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 Log.d("FixMe", "sendChatWithImage: ${response.text}")
             } catch (e: Exception) {
+
                 _FixMe_uiState.value = FixMeUiState.Error(e.localizedMessage ?: "Error")
                 Log.d("FixMe", "sendChatWithImage: ${e.localizedMessage}")
             }
         }
     }
 
-    private fun sendPromptNOTUSED(bitmap: Bitmap, prompt: String) {
+    /*private fun sendPromptNOTUSED(bitmap: Bitmap, prompt: String) {
         _FixMe_uiState.value = FixMeUiState.Loading
         viewModelScope.launch(Dispatchers.IO) {
             try {
@@ -112,5 +112,5 @@ class FixMeViewModel(application: Application) : AndroidViewModel(application) {
                 _FixMe_uiState.value = FixMeUiState.Error(e.localizedMessage ?: "Error")
             }
         }
-    }
+    }*/
 }

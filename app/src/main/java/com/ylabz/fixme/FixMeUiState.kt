@@ -15,7 +15,6 @@ sealed interface FixMeUiState {
      * Text has been generated
      */
     data class Success(
-        var memo: String = "Needs Fixing",
         var geminiResponses: ArrayList<String> = arrayListOf("how", "", "", "")
     ) : FixMeUiState
 
