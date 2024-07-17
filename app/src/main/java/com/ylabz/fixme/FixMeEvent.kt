@@ -6,7 +6,7 @@ import android.graphics.Bitmap
 sealed class MLEvent {
     data class StartCaptureSpeech2Txt(val updateText: (String) -> Unit, val finished: () -> Unit) : MLEvent()
     data class SetMemo(val value: String) : MLEvent()
-    data class GenAiResponseTxt(val value: String) : MLEvent()
-    data class GenAiResponseImg(val prompt: String, val value: Bitmap) : MLEvent()
     data class GetTextFromImg(val imgText: String) : MLEvent()
+    //data class GenAiResponseTxt(val prompt: String, val index: Int) : MLEvent()
+    data class GenAiResponseImg(val prompt: String, val image: Bitmap, val index: Int) : MLEvent()
 }

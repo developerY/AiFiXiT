@@ -15,9 +15,8 @@ sealed interface FixMeUiState {
      * Text has been generated
      */
     data class Success(
-        val outputText: String,
         var memo: String = "Needs Fixing",
-        var geminiResponse : String = ""
+        var geminiResponses: ArrayList<String> = arrayListOf("how", "", "", "")
     ) : FixMeUiState
 
     /**

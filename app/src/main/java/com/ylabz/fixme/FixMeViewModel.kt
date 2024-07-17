@@ -42,22 +42,17 @@ class FixMeViewModel(application: Application) : AndroidViewModel(application) {
 
     fun onEvent(event: MLEvent) {
         when (event) {
-
             is MLEvent.GenAiResponseImg -> {
-                sendChatWithImage(event.prompt, event.value)
-                Log.d("FixMe", "Called")
-                //sendPromptNOTUSED(event.value, event.prompt)
-            }
-
-            is MLEvent.GenAiResponseTxt -> {
-                sendChat(event.value)
+                sendChatWithImage(event.prompt, event.index, event.image)
+                Log.d("FixMe", "Called with image")
             }
 
             is MLEvent.SetMemo -> {
+                val old = FixMeUiState.Success().geminiResponses
                 viewModelScope.launch {
                     _FixMe_uiState.value = FixMeUiState.Success(
-                        outputText = "String",
-                        memo = "Needs Fixing",
+                        geminiResponses = old,
+                        memo = "Needs Fixing"
                     )
                 }
             }
@@ -72,11 +67,12 @@ class FixMeViewModel(application: Application) : AndroidViewModel(application) {
                     audioFun.startSpeechToText(event.updateText, event.finished)
                 }
             }
+
         }
     }
 
-    private fun sendChatWithImage(prompt: String, image: Bitmap? = null) {
-        //_FixMe_uiState.value = FixMeUiState.Loading
+
+    private fun sendChatWithImage(prompt: String, index: Int, image: Bitmap? = null) {
         Log.d("FixMe", "sendChatWithImage: $prompt")
         viewModelScope.launch(Dispatchers.IO) {
             try {
@@ -87,26 +83,14 @@ class FixMeViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 )
                 response.text?.let { outputContent ->
-                    _FixMe_uiState.value = FixMeUiState.Success(outputContent)
+                    val currentState = (_FixMe_uiState.value as? FixMeUiState.Success) ?: FixMeUiState.Success()
+                    currentState.geminiResponses[index] = outputContent
+                    _FixMe_uiState.value = currentState
                 }
                 Log.d("FixMe", "sendChatWithImage: ${response.text}")
             } catch (e: Exception) {
-                _FixMe_uiState.value = FixMeUiState.Success(e.localizedMessage ?: "Error")
-                Log.d("FixMe", "sendChatWithImage: ${e.localizedMessage}")
-            }
-        }
-    }
-
-    private fun sendChat(prompt: String) {
-        _FixMe_uiState.value = FixMeUiState.Loading
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val response = chat.sendMessage(content(role = "user") { text(prompt) })
-                response.text?.let { outputContent ->
-                    _FixMe_uiState.value = FixMeUiState.Success(outputContent)
-                }
-            } catch (e: Exception) {
                 _FixMe_uiState.value = FixMeUiState.Error(e.localizedMessage ?: "Error")
+                Log.d("FixMe", "sendChatWithImage: ${e.localizedMessage}")
             }
         }
     }

@@ -6,7 +6,6 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.drawable.BitmapDrawable
 import android.os.Build
-import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -33,7 +32,6 @@ import androidx.compose.material.icons.filled.Camera
 import androidx.compose.material.icons.filled.PostAdd
 import androidx.compose.material.icons.twotone.UnfoldLess
 import androidx.compose.material.icons.twotone.UnfoldMore
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -47,7 +45,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -134,7 +131,7 @@ internal fun MLScreen(
                 //paddingValues = paddingValues,
                 //lifeCycCamCont = lifeCycCamCont,
                 onEvent = onEvent,
-                result = fixMeUiState.outputText
+                result = fixMeUiState.geminiResponses
                 //imgClassID = mlUiState.data,
                 //screenAI = mlUiState.currentScreen,
                 //genAIRes = mlUiState.aiResponse,
@@ -158,12 +155,8 @@ internal fun MLScreen(
 }
 
 @Composable
-fun InitImagePaths(context: Context): Array<String> {
-    return arrayOf(
-        drawableToFilePath(context, R.drawable.baked_goods_1, "baked_goods_1.png"),
-        drawableToFilePath(context, R.drawable.baked_goods_2, "baked_goods_2.png")
-        // Add more images as needed
-    )
+fun InitImagePath(context: Context): String {
+    return drawableToFilePath(context, R.drawable.baked_goods_1, "crack_ipad")
 }
 
 fun drawableToFilePath(context: Context, drawableId: Int, fileName: String): String {
@@ -195,36 +188,23 @@ fun drawableToFilePathList(context: Context, drawableId: Int, fileName: String):
 }
 
 
-private val initialImages = arrayOf(
-    R.drawable.baked_goods_1,
-    R.drawable.baked_goods_2,
-    // Add more initial images as needed
-)
-
-private val initialImageDescriptions = arrayOf(
-    "Image 1 description",
-    "Image 2 description",
-    // Add more initial descriptions as needed
-)
-
-
+@OptIn(ExperimentalPermissionsApi::class)
 @RequiresApi(Build.VERSION_CODES.S)
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
 internal fun MLContent(
     modifier: Modifier = Modifier,
     onEvent: (MLEvent) -> Unit,
-    result: String = " the  answer goes here",
+    result: ArrayList<String>
+    //result: String = " the  answer goes here",
 ) {
     val context = LocalContext.current
-    val initialImagePaths = InitImagePaths(context)
+    val initialImagePath = InitImagePath(context)
 
-    val selectedImage = remember { mutableIntStateOf(0) }
     val placeholderPrompt = stringResource(R.string.prompt_placeholder)
     val placeholderResult = stringResource(R.string.results_placeholder)
     var prompt by rememberSaveable { mutableStateOf(placeholderPrompt) }
 
-    var images = remember { mutableStateListOf(*initialImagePaths) }
+    var image = remember { mutableStateOf(initialImagePath) }
     var isCameraVisible by remember { mutableStateOf(false) }
     var isCameraNoteVisible by remember { mutableStateOf(false) }
     var isRecording by remember { mutableStateOf(false) }
@@ -326,8 +306,8 @@ internal fun MLContent(
                         FixImage(
                             modifier = Modifier.fillMaxSize(),
                             onImageFile = { file ->
-                                // Replace the current list of images with the new image file path
-                                images.add(file.path)
+                                // Replace the current list of image with the new image file path
+                                image.value = file.path
                                 isCameraVisible = false // Hide the camera after capturing the image
                             }
                         )
@@ -416,8 +396,8 @@ internal fun MLContent(
                 }
 
                 Column {
-                    val imagePath = images.last()
-                    val bitmap = BitmapFactory.decodeFile(imagePath)
+                    val imagePath = image
+                    val bitmap = BitmapFactory.decodeFile(imagePath.value)
                     LazyRow(
                         modifier = Modifier
                             .padding(vertical = 16.dp)
@@ -437,7 +417,7 @@ internal fun MLContent(
                                     style = MaterialTheme.typography.bodyLarge,
                                     modifier = Modifier.padding(8.dp)
                                 )
-                                if (images.isNotEmpty()) {
+                                if (image.value.isNotEmpty()) {
                                     Image(
                                         bitmap = bitmap.asImageBitmap(),
                                         contentDescription = "Captured Image",
@@ -472,7 +452,7 @@ internal fun MLContent(
                                 TextField(
                                     value = speechText,
                                     onValueChange = { speechText = it },
-                                    label = { Text(text = speechText) }, //stringResource(R.string.speech_text_label)) },
+                                    label = { Text(text = "Speech Text") }, //stringResource(R.string.speech_text_label)) },
                                     modifier = Modifier
                                         .size(200.dp)
                                         .clip(RoundedCornerShape(16.dp))
@@ -503,7 +483,7 @@ internal fun MLContent(
                                 TextField(
                                     value = textFieldValue.value,
                                     onValueChange = { textFieldValue.value = it },
-                                    label = { textFieldValue.value }, //stringResource(R.string.speech_text_label)) },
+                                    label = { "Notes Text" }, //stringResource(R.string.speech_text_label)) },
                                     modifier = Modifier
                                         .size(200.dp)
                                         .clip(RoundedCornerShape(16.dp))
@@ -526,11 +506,8 @@ internal fun MLContent(
 
             FourTextAreasTabs(
                 geminiText = result,
-                geminiText1 = "text2",
-                geminiText2 = "text3",
-                geminiText3 = "ans4",
                 speechText = speechText,
-                images = images,
+                image = image.value,
                 textFieldValue = TextFieldValue("textFieldValue"),
                 onEvent = onEvent,
                 errorMessage = "Error occurred",
@@ -538,24 +515,6 @@ internal fun MLContent(
                 onErrorDismiss = {}
             )
             // FourTextAreasTabs(geminiText, geminiText, geminiText, geminiText)
-
-
-            var textColor = MaterialTheme.colorScheme.onSurface
-
-            val scrollState = rememberScrollState()
-            Text(
-                text = result,
-                textAlign = TextAlign.Start,
-                color = textColor,
-                modifier = Modifier
-                    .verticalScroll(scrollState)
-                    .padding(16.dp)
-                    .clip(MaterialTheme.shapes.medium)
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .shadow(4.dp, MaterialTheme.shapes.medium)
-            )
-
-
         }
     }
 }
@@ -567,7 +526,7 @@ fun MLContentPreview() {
     MaterialTheme {
         MLContent(
             onEvent = {},
-            result = stringResource(R.string.results_placeholder)
+            result = ArrayList<String>()
         )
     }
 }
