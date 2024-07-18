@@ -60,6 +60,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
+import android.location.Location
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -67,15 +68,19 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.google.accompanist.permissions.rememberPermissionState
 import com.ylabz.fixme.ui.FixImage
 import com.ylabz.fixme.ui.FourTextAreasTabs
 import com.ylabz.fixme.ui.camera.CameraNoteUIScreen
 import com.ylabz.fixme.ui.core.Loading
+import com.ylabz.fixme.ui.location.LocationCaptureUI
 import com.ylabz.fixme.ui.mic.SpeechCaptureUI
 import kotlinx.coroutines.delay
 import java.io.File
 import java.io.FileOutputStream
+import java.lang.Error
+
 
 @Composable
 fun MLRoute(
@@ -87,7 +92,7 @@ fun MLRoute(
 
     MLScreen(
         onEvent = onEvent,
-        fixMeUiState = mlState
+        fixMeUiState = mlState,
     )
 }
 
@@ -97,27 +102,43 @@ fun MLRoute(
 internal fun MLScreen(
     modifier: Modifier = Modifier,
     onEvent: (MLEvent) -> Unit,
-    fixMeUiState: FixMeUiState
+    fixMeUiState: FixMeUiState,
+
 ) {
+
+
 
     when (fixMeUiState) {
         FixMeUiState.Loading -> Loading(modifier)
         is FixMeUiState.Success -> MLContent(
             modifier,
             onEvent = onEvent,
-            result = fixMeUiState.geminiResponses
+            result = fixMeUiState.geminiResponses,
+            location = fixMeUiState.currLocation,
+            error = null
         )
-        is FixMeUiState.Error -> {
+        /*is FixMeUiState.Error -> {
             val textColor = MaterialTheme.colorScheme.error
             val result = fixMeUiState.errorMessage
             // Handle the error state UI here
+        }*/
+
+        is FixMeUiState.Error -> {
+            MLContent(
+                modifier,
+                onEvent = onEvent,
+                result = emptyList(),
+                location = null,
+                error = Error(fixMeUiState.errorMessage)
+            )
         }
     }
 }
 
 @Composable
 fun InitImagePath(context: Context): String {
-    return drawableToFilePath(context, R.drawable.baked_goods_1, "crack_ipad")
+    //return drawableToFilePath(context, R.drawable.baked_goods_1, "crack_ipad")
+    return drawableToFilePath(context, R.drawable.broken_screen, "baked_goods_1")
 }
 
 fun drawableToFilePath(context: Context, drawableId: Int, fileName: String): String {
@@ -138,7 +159,9 @@ fun drawableToFilePath(context: Context, drawableId: Int, fileName: String): Str
 internal fun MLContent(
     modifier: Modifier = Modifier,
     onEvent: (MLEvent) -> Unit,
-    result: List<String>
+    result: List<String>,
+    location: Location?,
+    error: Error?
 ) {
     val context = LocalContext.current
     val initialImagePath = InitImagePath(context)
@@ -158,7 +181,7 @@ internal fun MLContent(
     val permissionState = rememberPermissionState(Manifest.permission.RECORD_AUDIO)
     val hasPermission by remember { derivedStateOf { permissionState.status.isGranted } }
 
-    var showError by remember { mutableStateOf(false) }
+    var showError by remember { mutableStateOf(error?.message != null) }
     var errorMessage by remember { mutableStateOf("") }
     var isTopHalfVisible by remember { mutableStateOf(true) }
 
@@ -179,17 +202,6 @@ internal fun MLContent(
                 seconds = 0
             }
         }
-    }
-
-    if (showError) {
-        Snackbar(
-            action = {
-                TextButton(onClick = { showError = false }) {
-                    Text(text = "Dismiss")
-                }
-            },
-            modifier = Modifier.padding(16.dp)
-        ) { Text(text = errorMessage) }
     }
 
     Column(
@@ -225,7 +237,7 @@ internal fun MLContent(
                     .clickable { isTopHalfVisible = !isTopHalfVisible }
             )
         }
-
+        //Text(location.toString())//Text(location?.latitude.toString() + ", " + location?.longitude)
         if (isTopHalfVisible) {
             if (isCameraVisible || isCameraNoteVisible) {
                 Box(
@@ -308,19 +320,11 @@ internal fun MLContent(
                         )
                     }
 
-                    IconButton(
-                        onClick = {
-                            //geminiText.plus(" did work")
-                            /* call GPS */
-                        },
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .size(64.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.AddLocation,
-                            contentDescription = stringResource(R.string.action_go),
-                            tint = MaterialTheme.colorScheme.primary
+                    Box {
+                        LocationCaptureUI(
+                            hasPermission = hasPermission,
+                            updateLocation = {  },
+                            onEvent = onEvent,
                         )
                     }
                 }
@@ -416,10 +420,20 @@ internal fun MLContent(
                 }
             }
         }
-
+        if (showError) {
+            Snackbar(
+                action = {
+                    TextButton(onClick = { showError = false }) {
+                        Text(text = "Dismiss")
+                    }
+                },
+                modifier = Modifier.padding(16.dp)
+            ) { Text(text = errorMessage) }
+        }
         FourTextAreasTabs(
             geminiText = result,
             speechText = speechText,
+            location = location,
             image = image.value,
             textFieldValue = textNoteFieldValue.value.text,
             onEvent = onEvent,
@@ -431,15 +445,16 @@ internal fun MLContent(
     }
 }
 
-@RequiresApi(Build.VERSION_CODES.S)
+/*@RequiresApi(Build.VERSION_CODES.S)
 @Preview(showBackground = true)
 @Composable
 fun MLContentPreview() {
     MaterialTheme {
         MLContent(
             onEvent = {},
-            result = emptyList()
+            result = emptyList(),
+            location = null
         )
     }
-}
+}*/
 

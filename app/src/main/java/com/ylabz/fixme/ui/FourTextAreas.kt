@@ -1,6 +1,7 @@
 package com.ylabz.fixme.ui
 
 import android.graphics.BitmapFactory
+import android.location.Location
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -28,7 +29,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -40,6 +40,7 @@ fun FourTextAreasTabs(
     geminiText: List<String>,
     image: String,
     speechText: String,
+    location: Location?,
     textFieldValue: String,
     onEvent: (MLEvent) -> Unit,
     errorMessage: String,
@@ -81,11 +82,12 @@ fun FourTextAreasTabs(
                 .background(MaterialTheme.colorScheme.surfaceVariant)
                 .padding(16.dp)
         ) {
+            //${location.toString()}
             when (selectedTabIndex) {
-                0 -> PromptSection(selectedTabIndex, image, geminiText.getOrNull(selectedTabIndex) ?: "", "Fix", "How to make", onEvent, textFieldValue, speechText, onErrorDismiss)
-                1 -> PromptSection(selectedTabIndex, image, geminiText.getOrNull(selectedTabIndex) ?: "", "Parts", "What are the parts with price and budget", onEvent, textFieldValue, speechText, onErrorDismiss)
-                2 -> PromptSection(selectedTabIndex, image, geminiText.getOrNull(selectedTabIndex) ?: "", "Steps", "What are the steps to fix it", onEvent, textFieldValue, speechText, onErrorDismiss)
-                3 -> PromptSection(selectedTabIndex, image, geminiText.getOrNull(selectedTabIndex) ?: "", "Local", "What is a local business to help fix it", onEvent, textFieldValue, speechText, onErrorDismiss)
+                0 -> PromptSection(selectedTabIndex, image, geminiText.getOrNull(selectedTabIndex) ?: "", "Fix", "How to fix ", onEvent, textFieldValue, speechText, onErrorDismiss)
+                1 -> PromptSection(selectedTabIndex, image, geminiText.getOrNull(selectedTabIndex) ?: "", "Parts", "What are the parts with price and budget ", onEvent, textFieldValue, speechText, onErrorDismiss)
+                2 -> PromptSection(selectedTabIndex, image, geminiText.getOrNull(selectedTabIndex) ?: "", "Steps", "What are the steps to fix ", onEvent, textFieldValue, speechText, onErrorDismiss)
+                3 -> PromptSection(selectedTabIndex, image, geminiText.getOrNull(selectedTabIndex) ?: "", "Local", "What is a local business around ${location.toString()} to get this ", onEvent, textFieldValue, speechText, onErrorDismiss)
             }
         }
     }
@@ -99,13 +101,13 @@ fun PromptSection(
     buttonText: String,
     initialPrompt: String,
     onEvent: (MLEvent) -> Unit,
-    textFieldValue: String,
+    noteText: String,
     speechText: String,
     onErrorDismiss: () -> Unit
 ) {
     var isPromptVisible by rememberSaveable { mutableStateOf(false) }
     val icon = if (isPromptVisible) Icons.TwoTone.UnfoldLess else Icons.TwoTone.UnfoldMore
-    var prompt by remember { mutableStateOf(initialPrompt) }
+    var prompt by remember { mutableStateOf("Please explain $initialPrompt $speechText. Notes:$noteText. Thank you for your help!" ) }
 
     Column {
         if (isPromptVisible) {
@@ -158,11 +160,10 @@ fun PromptSection(
             )
             Button(
                 onClick = {
-                    val completePrompt = "$prompt $speechText"
                     try {
                         if (images.isNotEmpty()) {
                             val bitmap = BitmapFactory.decodeFile(images)
-                            onEvent(MLEvent.GenAiResponseImg(completePrompt, bitmap, index))
+                            onEvent(MLEvent.GenAiPromptResponseImg(prompt, bitmap, index))
                         }
                     } catch (e: Exception) {
                         onErrorDismiss()
@@ -195,6 +196,7 @@ fun PreviewFourTextAreasTabs() {
         geminiText = listOf("How text", "Parts text", "Steps text", "Local text"),
         image = "imagePath",
         speechText = "speechText",
+        location = Location(""),
         textFieldValue = "textFieldValue",
         onEvent = {},
         errorMessage = "Error occurred",

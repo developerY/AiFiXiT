@@ -65,7 +65,7 @@ fun SpeechCaptureUI(
         ) {
             SpeechCaptureUI(
                 hasPermission = hasPermission,
-                updateText = { desTxt -> onEvent(MLEvent.SetMemo(desTxt)) },
+                updateText = { },
                 onEvent = onEvent,
                 isRec = isRec
             )
