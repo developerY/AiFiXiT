@@ -84,10 +84,10 @@ fun FourTextAreasTabs(
         ) {
             //${location.toString()}
             when (selectedTabIndex) {
-                0 -> PromptSection(selectedTabIndex, image, geminiText.getOrNull(selectedTabIndex) ?: "", "Fix", "How to fix ", onEvent, textFieldValue, speechText, onErrorDismiss)
-                1 -> PromptSection(selectedTabIndex, image, geminiText.getOrNull(selectedTabIndex) ?: "", "Parts", "What are the parts with price and budget ", onEvent, textFieldValue, speechText, onErrorDismiss)
-                2 -> PromptSection(selectedTabIndex, image, geminiText.getOrNull(selectedTabIndex) ?: "", "Steps", "What are the steps to fix ", onEvent, textFieldValue, speechText, onErrorDismiss)
-                3 -> PromptSection(selectedTabIndex, image, geminiText.getOrNull(selectedTabIndex) ?: "", "Local", "What is a local business around ${location.toString()} to get this ", onEvent, textFieldValue, speechText, onErrorDismiss)
+                0 -> PromptSection(selectedTabIndex, image, geminiText.getOrNull(selectedTabIndex) ?: "", " 🔧   Fix It  ⚒️ ", "How to fix ", onEvent, textFieldValue, speechText, onErrorDismiss)
+                1 -> PromptSection(selectedTabIndex, image, geminiText.getOrNull(selectedTabIndex) ?: "", " ✅   Parts   🧰 ", "What are the parts with price and budget ", onEvent, textFieldValue, speechText, onErrorDismiss)
+                2 -> PromptSection(selectedTabIndex, image, geminiText.getOrNull(selectedTabIndex) ?: "", " 🏗️   Steps   📝 ", "What are the steps to fix ", onEvent, textFieldValue, speechText, onErrorDismiss)
+                3 -> PromptSection(selectedTabIndex, image, geminiText.getOrNull(selectedTabIndex) ?: "", " 🗺️   Local    📍 ", "What is a local business around ${location.toString()} to get this ", onEvent, textFieldValue, speechText, onErrorDismiss)
             }
         }
     }
@@ -107,7 +107,7 @@ fun PromptSection(
 ) {
     var isPromptVisible by rememberSaveable { mutableStateOf(false) }
     val icon = if (isPromptVisible) Icons.TwoTone.UnfoldLess else Icons.TwoTone.UnfoldMore
-    var prompt by remember { mutableStateOf("Please explain $initialPrompt $speechText. Notes:$noteText. Thank you for your help!" ) }
+    var prompt = "Please explain $initialPrompt $speechText. Notes:$noteText. Thank you for your help!"
 
     Column {
         if (isPromptVisible) {
