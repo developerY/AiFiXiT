@@ -323,7 +323,7 @@ internal fun MLContent(
                     Box {
                         LocationCaptureUI(
                             hasPermission = hasPermission,
-                            updateLocation = {  },
+                            location = location,
                             onEvent = onEvent,
                         )
                     }
