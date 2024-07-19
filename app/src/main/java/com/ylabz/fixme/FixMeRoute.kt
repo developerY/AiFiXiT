@@ -61,8 +61,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import android.location.Location
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -84,7 +88,6 @@ import java.lang.Error
 
 @Composable
 fun MLRoute(
-    //paddingValues: PaddingValues, // not using tabs yet.
     fixMeViewModel: FixMeViewModel = viewModel()
 ) {
     val onEvent = fixMeViewModel::onEvent
@@ -103,13 +106,22 @@ internal fun MLScreen(
     modifier: Modifier = Modifier,
     onEvent: (MLEvent) -> Unit,
     fixMeUiState: FixMeUiState,
-
 ) {
-
-
-
     when (fixMeUiState) {
-        FixMeUiState.Loading -> Loading(modifier)
+        FixMeUiState.Loading -> MLContent(
+            modifier,
+            onEvent = onEvent,
+            result = emptyList(),
+            location = null,
+            error = null,
+            loading = true
+        )
+
+
+
+
+
+
         is FixMeUiState.Success -> MLContent(
             modifier,
             onEvent = onEvent,
@@ -117,11 +129,6 @@ internal fun MLScreen(
             location = fixMeUiState.currLocation,
             error = null
         )
-        /*is FixMeUiState.Error -> {
-            val textColor = MaterialTheme.colorScheme.error
-            val result = fixMeUiState.errorMessage
-            // Handle the error state UI here
-        }*/
 
         is FixMeUiState.Error -> {
             MLContent(
@@ -129,7 +136,7 @@ internal fun MLScreen(
                 onEvent = onEvent,
                 result = emptyList(),
                 location = null,
-                error = Error(fixMeUiState.errorMessage)
+                error = fixMeUiState.errorMessage
             )
         }
     }
@@ -161,7 +168,8 @@ internal fun MLContent(
     onEvent: (MLEvent) -> Unit,
     result: List<String>,
     location: Location?,
-    error: Error?
+    error: String?,
+    loading: Boolean = false
 ) {
     val context = LocalContext.current
     val initialImagePath = InitImagePath(context)
@@ -181,12 +189,10 @@ internal fun MLContent(
     val permissionState = rememberPermissionState(Manifest.permission.RECORD_AUDIO)
     val hasPermission by remember { derivedStateOf { permissionState.status.isGranted } }
 
-    var showError by remember { mutableStateOf(error?.message != null) }
-    var errorMessage by remember { mutableStateOf("") }
+    var showError by remember { mutableStateOf(error != null) }
     var isTopHalfVisible by remember { mutableStateOf(true) }
 
     var textNoteFieldValue = remember { mutableStateOf(TextFieldValue()) }
-
 
     LaunchedEffect(isRecording) {
         while (isRecording) {
@@ -210,7 +216,8 @@ internal fun MLContent(
             .padding(16.dp)
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             val icon = if (isTopHalfVisible) Icons.TwoTone.UnfoldLess else Icons.TwoTone.UnfoldMore
             val textColor = if (isTopHalfVisible) Color(0xFF512DA8) else Color(0xFF0B7E71)
@@ -237,7 +244,7 @@ internal fun MLContent(
                     .clickable { isTopHalfVisible = !isTopHalfVisible }
             )
         }
-        //Text(location.toString())//Text(location?.latitude.toString() + ", " + location?.longitude)
+
         if (isTopHalfVisible) {
             if (isCameraVisible || isCameraNoteVisible) {
                 Box(
@@ -257,6 +264,7 @@ internal fun MLContent(
                                 isCameraVisible = false
                             }
                         )
+
                         isCameraNoteVisible -> CameraNoteUIScreen(
                             modifier = Modifier.fillMaxSize(),
                             onEvent = onEvent,
@@ -269,13 +277,15 @@ internal fun MLContent(
                 Row(
                     modifier = Modifier
                         .padding(vertical = 16.dp)
-                        .align(Alignment.CenterHorizontally)
+                        .align(Alignment.CenterHorizontally),
+                    horizontalArrangement = Arrangement.Center
                 ) {
                     IconButton(
                         onClick = { isCameraVisible = true },
                         modifier = Modifier
                             .clip(RoundedCornerShape(8.dp))
                             .size(64.dp)
+                            .background(MaterialTheme.colorScheme.primaryContainer)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Camera,
@@ -298,7 +308,7 @@ internal fun MLContent(
                             progress = { progress },
                             modifier = Modifier.align(Alignment.Center),
                             color = Color.Red,
-                            strokeWidth = 4.dp
+                            strokeWidth = 4.dp,
                         )
                     }
 
@@ -312,6 +322,7 @@ internal fun MLContent(
                         modifier = Modifier
                             .clip(RoundedCornerShape(8.dp))
                             .size(64.dp)
+                            .background(MaterialTheme.colorScheme.primaryContainer)
                     ) {
                         Icon(
                             imageVector = Icons.Default.PostAdd,
@@ -319,6 +330,8 @@ internal fun MLContent(
                             tint = MaterialTheme.colorScheme.primary
                         )
                     }
+
+                    Spacer(modifier = Modifier.width(16.dp))
 
                     Box {
                         LocationCaptureUI(
@@ -329,12 +342,13 @@ internal fun MLContent(
                     }
                 }
 
-                Column {
+                Column(
+                    modifier = Modifier.padding(vertical = 16.dp)
+                ) {
                     val imagePath = image.value
                     val bitmap = BitmapFactory.decodeFile(imagePath)
                     LazyRow(
                         modifier = Modifier
-                            .padding(vertical = 16.dp)
                             .fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -345,6 +359,8 @@ internal fun MLContent(
                                     .padding(end = 16.dp)
                                     .clip(RoundedCornerShape(16.dp))
                                     .border(BorderStroke(2.dp, MaterialTheme.colorScheme.primary))
+                                    .background(MaterialTheme.colorScheme.surface)
+                                    .padding(16.dp)
                             ) {
                                 Text(
                                     text = "Captured Image",
@@ -358,7 +374,12 @@ internal fun MLContent(
                                         modifier = Modifier
                                             .size(200.dp)
                                             .clip(RoundedCornerShape(16.dp))
-                                            .border(BorderStroke(4.dp, MaterialTheme.colorScheme.primary))
+                                            .border(
+                                                BorderStroke(
+                                                    4.dp,
+                                                    MaterialTheme.colorScheme.primary
+                                                )
+                                            )
                                     )
                                 }
                             }
@@ -373,6 +394,8 @@ internal fun MLContent(
                                     .padding(end = 16.dp)
                                     .clip(RoundedCornerShape(16.dp))
                                     .border(BorderStroke(2.dp, MaterialTheme.colorScheme.primary))
+                                    .background(MaterialTheme.colorScheme.surface)
+                                    .padding(16.dp)
                             ) {
                                 Text(
                                     text = "Speech Text",
@@ -386,7 +409,12 @@ internal fun MLContent(
                                     modifier = Modifier
                                         .size(200.dp)
                                         .clip(RoundedCornerShape(16.dp))
-                                        .border(BorderStroke(2.dp, MaterialTheme.colorScheme.primary))
+                                        .border(
+                                            BorderStroke(
+                                                2.dp,
+                                                MaterialTheme.colorScheme.primary
+                                            )
+                                        )
                                 )
                             }
                             Spacer(modifier = Modifier.width(16.dp))
@@ -399,6 +427,8 @@ internal fun MLContent(
                                     .padding(end = 16.dp)
                                     .clip(RoundedCornerShape(16.dp))
                                     .border(BorderStroke(2.dp, MaterialTheme.colorScheme.primary))
+                                    .background(MaterialTheme.colorScheme.surface)
+                                    .padding(16.dp)
                             ) {
                                 Text(
                                     text = "Notes Text",
@@ -412,7 +442,12 @@ internal fun MLContent(
                                     modifier = Modifier
                                         .size(200.dp)
                                         .clip(RoundedCornerShape(16.dp))
-                                        .border(BorderStroke(2.dp, MaterialTheme.colorScheme.primary))
+                                        .border(
+                                            BorderStroke(
+                                                2.dp,
+                                                MaterialTheme.colorScheme.primary
+                                            )
+                                        )
                                 )
                             }
                         }
@@ -421,15 +456,34 @@ internal fun MLContent(
             }
         }
         if (showError) {
-            Snackbar(
-                action = {
-                    TextButton(onClick = { showError = false }) {
-                        Text(text = "Dismiss")
-                    }
-                },
-                modifier = Modifier.padding(16.dp)
-            ) { Text(text = errorMessage) }
+                Snackbar(
+                    action = {
+                        TextButton(onClick = { showError = false }) {
+                            Text(
+                                text = "Dismiss",
+                                modifier = Modifier.padding(16.dp),
+                                color = Color.Black,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 18.sp
+                            )
+                        }
+                    },
+                    modifier = Modifier.padding(16.dp),
+                    containerColor = MaterialTheme.colorScheme.error,
+                    contentColor = Color.White
+                ) {
+
+                    Text(
+                        text = error ?: "",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp
+                    )
+
+                }
+
         }
+
         FourTextAreasTabs(
             geminiText = result,
             speechText = speechText,
@@ -437,11 +491,11 @@ internal fun MLContent(
             image = image.value,
             textFieldValue = textNoteFieldValue.value.text,
             onEvent = onEvent,
-            errorMessage = "Error occurred",
+            errorMessage = error?: "",
             showError = false,
-            onErrorDismiss = {}
+            onErrorDismiss = {},
+            isLoading = loading
         )
-
     }
 }
 

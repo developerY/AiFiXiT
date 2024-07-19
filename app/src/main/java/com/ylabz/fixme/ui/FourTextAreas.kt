@@ -13,15 +13,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.twotone.UnfoldLess
 import androidx.compose.material.icons.twotone.UnfoldMore
-import androidx.compose.material3.Button
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Snackbar
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -45,19 +37,21 @@ fun FourTextAreasTabs(
     onEvent: (MLEvent) -> Unit,
     errorMessage: String,
     showError: Boolean = false,
-    onErrorDismiss: () -> Unit
+    onErrorDismiss: () -> Unit,
+    isLoading: Boolean = false // Add this parameter
 ) {
     var selectedTabIndex by remember { mutableStateOf(0) }
 
     val tabNames = listOf("How", "Parts", "Steps", "Local")
 
-    Column(modifier = Modifier.fillMaxWidth()) {
-        TabRow(selectedTabIndex = selectedTabIndex) {
+    Column(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background)) {
+        TabRow(selectedTabIndex = selectedTabIndex, modifier = Modifier.background(MaterialTheme.colorScheme.primary)) {
             tabNames.forEachIndexed { index, title ->
                 Tab(
-                    text = { Text(title) },
+                    text = { Text(title, color = MaterialTheme.colorScheme.onPrimary) },
                     selected = selectedTabIndex == index,
-                    onClick = { selectedTabIndex = index }
+                    onClick = { selectedTabIndex = index },
+                    modifier = Modifier.background(MaterialTheme.colorScheme.primary)
                 )
             }
         }
@@ -73,6 +67,17 @@ fun FourTextAreasTabs(
             ) { Text(text = errorMessage, color = MaterialTheme.colorScheme.onError) }
         }
 
+        if (isLoading) {
+            // Display a progress indicator if loading
+            CircularProgressIndicator(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+                    .align(Alignment.CenterHorizontally),
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -82,16 +87,28 @@ fun FourTextAreasTabs(
                 .background(MaterialTheme.colorScheme.surfaceVariant)
                 .padding(16.dp)
         ) {
-            //${location.toString()}
             when (selectedTabIndex) {
-                0 -> PromptSection(selectedTabIndex, image, geminiText.getOrNull(selectedTabIndex) ?: "", " 🔧   Fix It  ⚒️ ", "How to fix ", onEvent, textFieldValue, speechText, onErrorDismiss)
-                1 -> PromptSection(selectedTabIndex, image, geminiText.getOrNull(selectedTabIndex) ?: "", " ✅   Parts   🧰 ", "What are the parts with price and budget ", onEvent, textFieldValue, speechText, onErrorDismiss)
-                2 -> PromptSection(selectedTabIndex, image, geminiText.getOrNull(selectedTabIndex) ?: "", " 🏗️   Steps   📝 ", "What are the steps to fix ", onEvent, textFieldValue, speechText, onErrorDismiss)
-                3 -> PromptSection(selectedTabIndex, image, geminiText.getOrNull(selectedTabIndex) ?: "", " 🗺️   Local    📍 ", "What is a local business around ${location.toString()} to get this ", onEvent, textFieldValue, speechText, onErrorDismiss)
+                0 -> PromptSection(
+                    selectedTabIndex, image, geminiText.getOrNull(selectedTabIndex) ?: "",
+                    " 🔧   Fix It  ⚒️ ", "Please explain how to make this cupcake. Thanks You! ", onEvent, textFieldValue, speechText, onErrorDismiss
+                )
+                1 -> PromptSection(
+                    selectedTabIndex, image, geminiText.getOrNull(selectedTabIndex) ?: "",
+                    " ✅   Parts   🧰 ", "What are the parts with price and budget ", onEvent, textFieldValue, speechText, onErrorDismiss
+                )
+                2 -> PromptSection(
+                    selectedTabIndex, image, geminiText.getOrNull(selectedTabIndex) ?: "",
+                    " 🏗️   Steps   📝 ", "What are the steps to fix ", onEvent, textFieldValue, speechText, onErrorDismiss
+                )
+                3 -> PromptSection(
+                    selectedTabIndex, image, geminiText.getOrNull(selectedTabIndex) ?: "",
+                    " 🗺️   Local    📍 ", "What is a local business around ${location.toString()} to get this ", onEvent, textFieldValue, speechText, onErrorDismiss
+                )
             }
         }
     }
 }
+
 
 @Composable
 fun PromptSection(
@@ -204,6 +221,3 @@ fun PreviewFourTextAreasTabs() {
         onErrorDismiss = {}
     )
 }
-
-
-
