@@ -142,7 +142,13 @@ fun PromptSection(
 ) {
     var isPromptVisible by rememberSaveable { mutableStateOf(false) }
     val icon = if (isPromptVisible) Icons.TwoTone.UnfoldLess else Icons.TwoTone.UnfoldMore
-    var prompt = "Please explain $initialPrompt $speechText. Notes:$noteText. Thank you for your help!"
+    //var prompt = "Please explain $initialPrompt $speechText. Notes:$noteText. Thank you for your help!"
+    //var prompt by rememberSaveable { mutableStateOf("Please explain $initialPrompt $speechText. Notes:$noteText. Thank you for your help!") }
+    var prompt by rememberSaveable { mutableStateOf("") }
+
+    LaunchedEffect(initialPrompt, speechText, noteText) {
+        prompt = "Please explain $initialPrompt $speechText. Notes:$noteText. Thank you for your help!"
+    }
 
     Column {
         if (isPromptVisible) {
