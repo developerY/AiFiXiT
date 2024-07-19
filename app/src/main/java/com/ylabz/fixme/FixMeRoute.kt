@@ -117,11 +117,6 @@ internal fun MLScreen(
             loading = true
         )
 
-
-
-
-
-
         is FixMeUiState.Success -> MLContent(
             modifier,
             onEvent = onEvent,
@@ -144,8 +139,8 @@ internal fun MLScreen(
 
 @Composable
 fun InitImagePath(context: Context): String {
-    //return drawableToFilePath(context, R.drawable.baked_goods_1, "crack_ipad")
-    return drawableToFilePath(context, R.drawable.broken_screen, "baked_goods_1")
+    return drawableToFilePath(context, R.drawable.baked_goods_1, "backed_goods")
+    //return drawableToFilePath(context, R.drawable.broken_screen, "cracked screen")
 }
 
 fun drawableToFilePath(context: Context, drawableId: Int, fileName: String): String {

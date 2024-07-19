@@ -90,7 +90,7 @@ fun FourTextAreasTabs(
             when (selectedTabIndex) {
                 0 -> PromptSection(
                     selectedTabIndex, image, geminiText.getOrNull(selectedTabIndex) ?: "",
-                    " 🔧   Fix It  ⚒️ ", "Please explain how to make this cupcake. Thanks You! ", onEvent, textFieldValue, speechText, onErrorDismiss
+                    " 🔧   Fix It  ⚒️ ", "Provide sets to fix . Thanks You! ", onEvent, textFieldValue, speechText, onErrorDismiss
                 )
                 1 -> PromptSection(
                     selectedTabIndex, image, geminiText.getOrNull(selectedTabIndex) ?: "",
@@ -180,7 +180,9 @@ fun PromptSection(
                     try {
                         if (images.isNotEmpty()) {
                             val bitmap = BitmapFactory.decodeFile(images)
-                            onEvent(MLEvent.GenAiPromptResponseImg(prompt, bitmap, index))
+                            onEvent(MLEvent.GenAiChatResponseImg(prompt, bitmap, index))
+                            //GenAiChatResponseImg
+                            //onEvent(MLEvent.GenAiPromptResponseImg(prompt, bitmap, index))
                         }
                     } catch (e: Exception) {
                         onErrorDismiss()
