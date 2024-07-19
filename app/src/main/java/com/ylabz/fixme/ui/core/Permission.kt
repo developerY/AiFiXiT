@@ -60,6 +60,44 @@ fun FeatureThatRequireMicPermission(
     }
 }
 
+@OptIn(ExperimentalPermissionsApi::class)
+@Composable
+fun FeatureThatRequireLocPermission(
+    permissionNotAvailableContent: @Composable () -> Unit = { },
+    content: @Composable () -> Unit = { }
+) {
+
+    // Location permission state
+    val locPermissionState = rememberPermissionState(
+        android.Manifest.permission.ACCESS_COARSE_LOCATION
+    )
+
+    if (locPermissionState.status.isGranted) {
+        //content()
+    } else {
+        Column {
+            val textToShow = if (locPermissionState.status.shouldShowRationale) {
+                // If the user has denied the permission but the rationale can be shown,
+                // then gently explain why the app requires this permission
+                "The Location is important for this app. Please grant the permission."
+            } else {
+                // If it's the first time the user lands on this feature, or the user
+                // doesn't want to be asked again for this permission, explain that the
+                // permission is required
+                "Location permission required for this feature to be available. " +
+                        "Please grant the permission"
+            }
+            Text(textToShow)
+            Button(
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally),
+                onClick = { locPermissionState.launchPermissionRequest() }
+            ) {
+                Text("Request Location Permission")
+            }
+        }
+    }
+}
 
 @ExperimentalPermissionsApi
 @Composable

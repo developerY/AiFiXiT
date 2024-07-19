@@ -23,11 +23,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AddLocation
 import androidx.compose.material.icons.filled.Camera
 import androidx.compose.material.icons.filled.PostAdd
 import androidx.compose.material.icons.twotone.UnfoldLess
@@ -45,7 +42,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -53,18 +49,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.text.style.TextAlign
 import android.location.Location
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.material.icons.filled.Save
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
@@ -72,18 +67,16 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
-import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.google.accompanist.permissions.rememberPermissionState
-import com.ylabz.fixme.ui.FixImage
+import com.ylabz.fixme.ui.camera.FixImage
 import com.ylabz.fixme.ui.FourTextAreasTabs
 import com.ylabz.fixme.ui.camera.CameraNoteUIScreen
-import com.ylabz.fixme.ui.core.Loading
 import com.ylabz.fixme.ui.location.LocationCaptureUI
 import com.ylabz.fixme.ui.mic.SpeechCaptureUI
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import java.io.File
 import java.io.FileOutputStream
-import java.lang.Error
 
 
 @Composable
@@ -140,8 +133,8 @@ internal fun MLScreen(
 
 @Composable
 fun InitImagePath(context: Context): String {
-    return drawableToFilePath(context, R.drawable.baked_goods_1, "backed_goods")
-    //return drawableToFilePath(context, R.drawable.broken_screen, "cracked screen")
+    //return drawableToFilePath(context, R.drawable.baked_goods_1, "backed_goods")
+    return drawableToFilePath(context, R.drawable.broken_screen, "cracked screen")
 }
 
 fun drawableToFilePath(context: Context, drawableId: Int, fileName: String): String {
@@ -156,7 +149,7 @@ fun drawableToFilePath(context: Context, drawableId: Int, fileName: String): Str
     return file.path
 }
 
-@OptIn(ExperimentalPermissionsApi::class)
+@OptIn(ExperimentalPermissionsApi::class, ExperimentalCoroutinesApi::class)
 @RequiresApi(Build.VERSION_CODES.S)
 @Composable
 internal fun MLContent(
@@ -182,8 +175,11 @@ internal fun MLContent(
     var seconds by remember { mutableStateOf(0) }
     var progress by remember { mutableStateOf(0f) }
 
-    val permissionState = rememberPermissionState(Manifest.permission.RECORD_AUDIO)
-    val hasPermission by remember { derivedStateOf { permissionState.status.isGranted } }
+    val permissionMicState = rememberPermissionState(Manifest.permission.RECORD_AUDIO)
+    val hasMicPermission by remember { derivedStateOf { permissionMicState.status.isGranted } }
+
+    val permissionLocState = rememberPermissionState(Manifest.permission.ACCESS_COARSE_LOCATION)
+    val hasLocPermission by remember { derivedStateOf { permissionLocState.status.isGranted } }
 
     var showError by remember { mutableStateOf(error != null) }
     var isTopHalfVisible by remember { mutableStateOf(true) }
@@ -206,252 +202,250 @@ internal fun MLContent(
         }
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+    Box(modifier = modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
         ) {
-            val icon = if (isTopHalfVisible) Icons.TwoTone.UnfoldLess else Icons.TwoTone.UnfoldMore
-            val textColor = if (isTopHalfVisible) Color(0xFF512DA8) else Color(0xFF0B7E71)
-            val iconTint = if (isTopHalfVisible) Color(0xFF512DA8) else Color(0xFF0B7E71)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                val icon = if (isTopHalfVisible) Icons.TwoTone.UnfoldLess else Icons.TwoTone.UnfoldMore
+                val textColor = if (isTopHalfVisible) Color(0xFF512DA8) else Color(0xFF0B7E71)
+                val iconTint = if (isTopHalfVisible) Color(0xFF512DA8) else Color(0xFF0B7E71)
 
-            Spacer(Modifier.weight(0.5f))
+                Spacer(Modifier.weight(0.5f))
 
-            Text(
-                text = stringResource(R.string.baking_title),
-                style = MaterialTheme.typography.titleLarge,
-                color = textColor,
-                modifier = Modifier
-                    .padding(bottom = 16.dp)
-                    .weight(2f)
-            )
-
-            Icon(
-                imageVector = icon,
-                contentDescription = "Expand/Collapse",
-                tint = iconTint,
-                modifier = Modifier
-                    .weight(0.5f)
-                    .size(27.dp)
-                    .clickable { isTopHalfVisible = !isTopHalfVisible }
-            )
-        }
-
-        if (isTopHalfVisible) {
-            if (isCameraVisible || isCameraNoteVisible) {
-                Box(
+                Text(
+                    text = stringResource(R.string.baking_title),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = textColor,
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(300.dp)
-                        .padding(vertical = 16.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(MaterialTheme.colorScheme.surface)
-                        .border(BorderStroke(2.dp, MaterialTheme.colorScheme.primary))
-                ) {
-                    when {
-                        isCameraVisible -> FixImage(
-                            modifier = Modifier.fillMaxSize(),
-                            onImageFile = { file ->
-                                image.value = file.path
+                        .padding(bottom = 16.dp)
+                        .weight(2f)
+                )
+
+                Icon(
+                    imageVector = icon,
+                    contentDescription = "Expand/Collapse",
+                    tint = iconTint,
+                    modifier = Modifier
+                        .weight(0.5f)
+                        .size(27.dp)
+                        .clickable { isTopHalfVisible = !isTopHalfVisible }
+                )
+            }
+
+            if (isTopHalfVisible) {
+                if (isCameraVisible || isCameraNoteVisible) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(300.dp)
+                            .padding(vertical = 16.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(MaterialTheme.colorScheme.surface)
+                            .border(BorderStroke(2.dp, MaterialTheme.colorScheme.primary))
+                    ) {
+                        when {
+                            isCameraVisible -> FixImage(
+                                modifier = Modifier.fillMaxSize(),
+                                onImageFile = { file ->
+                                    image.value = file.path
+                                    isCameraVisible = false
+                                }
+                            )
+
+                            isCameraNoteVisible -> CameraNoteUIScreen(
+                                modifier = Modifier.fillMaxSize(),
+                                onEvent = onEvent,
+                                textFieldValue = textNoteFieldValue,
+                                isExpanded = { isCameraNoteVisible = false }
+                            )
+                        }
+                    }
+                } else {
+                    Row(
+                        modifier = Modifier
+                            .padding(vertical = 16.dp)
+                            .align(Alignment.CenterHorizontally),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        IconButton(
+                            onClick = { isCameraVisible = true },
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .size(64.dp)
+                                .background(MaterialTheme.colorScheme.primaryContainer)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Camera,
+                                contentDescription = stringResource(R.string.action_go),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Box {
+                            SpeechCaptureUI(
+                                hasPermission = hasMicPermission,
+                                updateText = { desTxt -> speechText = desTxt },
+                                onEvent = onEvent,
+                                isRec = { isRecording = true }
+                            )
+
+                            CircularProgressIndicator(
+                                progress = progress,
+                                modifier = Modifier.align(Alignment.Center),
+                                color = Color.Red,
+                                strokeWidth = 4.dp,
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(16.dp))
+
+                        IconButton(
+                            onClick = {
+                                isCameraNoteVisible = true
                                 isCameraVisible = false
-                            }
-                        )
+                            },
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .size(64.dp)
+                                .background(MaterialTheme.colorScheme.primaryContainer)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.PostAdd,
+                                contentDescription = stringResource(R.string.action_go),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
 
-                        isCameraNoteVisible -> CameraNoteUIScreen(
-                            modifier = Modifier.fillMaxSize(),
-                            onEvent = onEvent,
-                            textFieldValue = textNoteFieldValue,
-                            isExpanded = { isCameraNoteVisible = false }
-                        )
-                    }
-                }
-            } else {
-                Row(
-                    modifier = Modifier
-                        .padding(vertical = 16.dp)
-                        .align(Alignment.CenterHorizontally),
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    IconButton(
-                        onClick = { isCameraVisible = true },
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .size(64.dp)
-                            .background(MaterialTheme.colorScheme.primaryContainer)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Camera,
-                            contentDescription = stringResource(R.string.action_go),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
+                        Spacer(modifier = Modifier.width(16.dp))
 
-                    Spacer(modifier = Modifier.width(16.dp))
-
-                    Box {
-                        SpeechCaptureUI(
-                            hasPermission = hasPermission,
-                            updateText = { desTxt -> speechText = desTxt },
-                            onEvent = onEvent,
-                            isRec = { isRecording = true }
-                        )
-
-                        CircularProgressIndicator(
-                            progress = { progress },
-                            modifier = Modifier.align(Alignment.Center),
-                            color = Color.Red,
-                            strokeWidth = 4.dp,
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(16.dp))
-
-                    IconButton(
-                        onClick = {
-                            isCameraNoteVisible = true
-                            isCameraVisible = false
-                        },
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .size(64.dp)
-                            .background(MaterialTheme.colorScheme.primaryContainer)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.PostAdd,
-                            contentDescription = stringResource(R.string.action_go),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(16.dp))
-
-                    Box {
                         LocationCaptureUI(
-                            hasPermission = hasPermission,
+                            hasPermission = hasLocPermission,
                             location = location,
                             onEvent = onEvent,
                         )
                     }
-                }
 
-                Column(
-                    modifier = Modifier.padding(vertical = 16.dp)
-                ) {
-                    val imagePath = image.value
-                    val bitmap = BitmapFactory.decodeFile(imagePath)
-                    LazyRow(
-                        modifier = Modifier
-                            .fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
+                    Column(
+                        modifier = Modifier.padding(vertical = 16.dp)
                     ) {
-                        item {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                modifier = Modifier
-                                    .padding(end = 16.dp)
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .border(BorderStroke(2.dp, MaterialTheme.colorScheme.primary))
-                                    .background(MaterialTheme.colorScheme.surface)
-                                    .padding(16.dp)
-                            ) {
-                                Text(
-                                    text = "Captured Image",
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    modifier = Modifier.padding(8.dp)
-                                )
-                                if (image.value.isNotEmpty()) {
-                                    Image(
-                                        bitmap = bitmap.asImageBitmap(),
-                                        contentDescription = "Captured Image",
+                        val imagePath = image.value
+                        val bitmap = BitmapFactory.decodeFile(imagePath)
+                        LazyRow(
+                            modifier = Modifier
+                                .fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            item {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    modifier = Modifier
+                                        .padding(end = 16.dp)
+                                        .clip(RoundedCornerShape(16.dp))
+                                        .border(BorderStroke(2.dp, MaterialTheme.colorScheme.primary))
+                                        .background(MaterialTheme.colorScheme.surface)
+                                        .padding(16.dp)
+                                ) {
+                                    Text(
+                                        text = "Captured Image",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        modifier = Modifier.padding(8.dp)
+                                    )
+                                    if (image.value.isNotEmpty()) {
+                                        Image(
+                                            bitmap = bitmap.asImageBitmap(),
+                                            contentDescription = "Captured Image",
+                                            modifier = Modifier
+                                                .size(200.dp)
+                                                .clip(RoundedCornerShape(16.dp))
+                                                .border(
+                                                    BorderStroke(
+                                                        4.dp,
+                                                        MaterialTheme.colorScheme.primary
+                                                    )
+                                                )
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.width(16.dp))
+                            }
+
+                            item {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    modifier = Modifier
+                                        .padding(end = 16.dp)
+                                        .clip(RoundedCornerShape(16.dp))
+                                        .border(BorderStroke(2.dp, MaterialTheme.colorScheme.primary))
+                                        .background(MaterialTheme.colorScheme.surface)
+                                        .padding(16.dp)
+                                ) {
+                                    Text(
+                                        text = "Speech Text",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        modifier = Modifier.padding(8.dp)
+                                    )
+                                    TextField(
+                                        value = speechText,
+                                        onValueChange = { speechText = it },
+                                        label = { Text(text = "Speech Text") },
                                         modifier = Modifier
                                             .size(200.dp)
                                             .clip(RoundedCornerShape(16.dp))
                                             .border(
                                                 BorderStroke(
-                                                    4.dp,
+                                                    2.dp,
+                                                    MaterialTheme.colorScheme.primary
+                                                )
+                                            )
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(16.dp))
+                            }
+
+                            item {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    modifier = Modifier
+                                        .padding(end = 16.dp)
+                                        .clip(RoundedCornerShape(16.dp))
+                                        .border(BorderStroke(2.dp, MaterialTheme.colorScheme.primary))
+                                        .background(MaterialTheme.colorScheme.surface)
+                                        .padding(16.dp)
+                                ) {
+                                    Text(
+                                        text = "Notes Text",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        modifier = Modifier.padding(8.dp)
+                                    )
+                                    TextField(
+                                        value = textNoteFieldValue.value,
+                                        onValueChange = { textNoteFieldValue.value = it },
+                                        label = { Text(text = "Notes Text") },
+                                        modifier = Modifier
+                                            .size(200.dp)
+                                            .clip(RoundedCornerShape(16.dp))
+                                            .border(
+                                                BorderStroke(
+                                                    2.dp,
                                                     MaterialTheme.colorScheme.primary
                                                 )
                                             )
                                     )
                                 }
                             }
-
-                            Spacer(modifier = Modifier.width(16.dp))
-                        }
-
-                        item {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                modifier = Modifier
-                                    .padding(end = 16.dp)
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .border(BorderStroke(2.dp, MaterialTheme.colorScheme.primary))
-                                    .background(MaterialTheme.colorScheme.surface)
-                                    .padding(16.dp)
-                            ) {
-                                Text(
-                                    text = "Speech Text",
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    modifier = Modifier.padding(8.dp)
-                                )
-                                TextField(
-                                    value = speechText,
-                                    onValueChange = { speechText = it },
-                                    label = { Text(text = "Speech Text") },
-                                    modifier = Modifier
-                                        .size(200.dp)
-                                        .clip(RoundedCornerShape(16.dp))
-                                        .border(
-                                            BorderStroke(
-                                                2.dp,
-                                                MaterialTheme.colorScheme.primary
-                                            )
-                                        )
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(16.dp))
-                        }
-
-                        item {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                modifier = Modifier
-                                    .padding(end = 16.dp)
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .border(BorderStroke(2.dp, MaterialTheme.colorScheme.primary))
-                                    .background(MaterialTheme.colorScheme.surface)
-                                    .padding(16.dp)
-                            ) {
-                                Text(
-                                    text = "Notes Text",
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    modifier = Modifier.padding(8.dp)
-                                )
-                                TextField(
-                                    value = textNoteFieldValue.value,
-                                    onValueChange = { textNoteFieldValue.value = it },
-                                    label = { Text(text = "Notes Text") },
-                                    modifier = Modifier
-                                        .size(200.dp)
-                                        .clip(RoundedCornerShape(16.dp))
-                                        .border(
-                                            BorderStroke(
-                                                2.dp,
-                                                MaterialTheme.colorScheme.primary
-                                            )
-                                        )
-                                )
-                            }
                         }
                     }
                 }
             }
-        }
-        if (showError) {
+            if (showError) {
                 Snackbar(
                     action = {
                         TextButton(onClick = { showError = false }) {
@@ -468,32 +462,43 @@ internal fun MLContent(
                     containerColor = MaterialTheme.colorScheme.error,
                     contentColor = Color.White
                 ) {
-
                     Text(
                         text = error ?: "",
                         color = Color.White,
                         fontWeight = FontWeight.Bold,
                         fontSize = 18.sp
                     )
-
                 }
+            }
 
+            FourTextAreasTabs(
+                geminiText = result,
+                speechText = speechText,
+                location = location,
+                image = image.value,
+                textFieldValue = textNoteFieldValue.value.text,
+                onEvent = onEvent,
+                errorMessage = error ?: "",
+                showError = false,
+                onErrorDismiss = {},
+                isLoading = loading
+            )
         }
 
-        FourTextAreasTabs(
-            geminiText = result,
-            speechText = speechText,
-            location = location,
-            image = image.value,
-            textFieldValue = textNoteFieldValue.value.text,
-            onEvent = onEvent,
-            errorMessage = error?: "",
-            showError = false,
-            onErrorDismiss = {},
-            isLoading = loading
-        )
+        FloatingActionButton(
+            onClick = { /* Do nothing, just for decorative purpose */ },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp)
+                .alpha(0.5f),
+            containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f),
+            //enabled = false // Marking the FAB as disabled
+        ) {
+            Icon(Icons.Default.Save, contentDescription = "Save", tint = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f))
+        }
     }
 }
+
 
 /*@RequiresApi(Build.VERSION_CODES.S)
 @Preview(showBackground = true)

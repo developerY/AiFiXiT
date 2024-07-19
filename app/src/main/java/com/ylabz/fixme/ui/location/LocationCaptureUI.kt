@@ -28,6 +28,8 @@ import androidx.compose.ui.unit.dp
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.ylabz.fixme.MLEvent
+import com.ylabz.fixme.ui.core.FeatureThatRequireLocPermission
+import com.ylabz.fixme.ui.core.FeatureThatRequireMicPermission
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalCoroutinesApi::class)
@@ -42,35 +44,27 @@ fun LocationCaptureUI(
         LocationCaptureUIContent(modifier = modifier, location, onEvent = onEvent)
     } else {
         val context = LocalContext.current
-        val permissionState = rememberMultiplePermissionsState(
-            permissions = listOf(
-                Manifest.permission.ACCESS_FINE_LOCATION,
-                Manifest.permission.ACCESS_COARSE_LOCATION
-            )
-        )
-
-        LaunchedEffect(Unit) {
-            permissionState.launchMultiplePermissionRequest()
-        }
-
-        if (permissionState.allPermissionsGranted) {
-            LocationCaptureUIContent(modifier = modifier, location = location, onEvent = onEvent)
-        } else {
-            Column(modifier) {
-                Text("Location permission is needed to get the current location.")
-                Spacer(modifier = Modifier.height(8.dp))
-                Button(
-                    onClick = {
-                        context.startActivity(
-                            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                                data = Uri.fromParts("package", context.packageName, null)
-                            }
-                        )
+        FeatureThatRequireLocPermission(
+            permissionNotAvailableContent = {
+                Column(modifier) {
+                    Text("O noes! Location!")
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(
+                        onClick = {
+                            context.startActivity(
+                                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                    data = Uri.fromParts("package", context.packageName, null)
+                                }
+                            )
+                        }
+                    ) {
+                        Text("Open Settings")
                     }
-                ) {
-                    Text("Open Settings")
                 }
             }
+        ) {
+            LocationCaptureUIContent(modifier = modifier, location = location, onEvent = onEvent)
+
         }
     }
 }

@@ -19,11 +19,14 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.ylabz.fixme.MLEvent
 import com.ylabz.fixme.R
 
@@ -60,11 +63,26 @@ fun FourTextAreasTabs(
             Snackbar(
                 action = {
                     TextButton(onClick = { onErrorDismiss() }) {
-                        Text(text = "Dismiss", color = MaterialTheme.colorScheme.onError)
+                        Text(
+                            text = "Dismiss",
+                            modifier = Modifier.padding(16.dp),
+                            color = Color.Black,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp
+                        )
                     }
                 },
-                modifier = Modifier.padding(16.dp)
-            ) { Text(text = errorMessage, color = MaterialTheme.colorScheme.onError) }
+                modifier = Modifier.padding(16.dp),
+                containerColor = MaterialTheme.colorScheme.error,
+                contentColor = Color.White
+            ) {
+                Text(
+                    text = errorMessage,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp
+                )
+            }
         }
 
         if (isLoading) {
@@ -180,9 +198,9 @@ fun PromptSection(
                     try {
                         if (images.isNotEmpty()) {
                             val bitmap = BitmapFactory.decodeFile(images)
-                            onEvent(MLEvent.GenAiChatResponseImg(prompt, bitmap, index))
+                            onEvent(MLEvent.GenAiPromptResponseImg(prompt, bitmap, index))
                             //GenAiChatResponseImg
-                            //onEvent(MLEvent.GenAiPromptResponseImg(prompt, bitmap, index))
+                            //onEvent(MLEvent.GenAiPromptResponseImg(promptState.value, bitmap, index))
                         }
                     } catch (e: Exception) {
                         onErrorDismiss()

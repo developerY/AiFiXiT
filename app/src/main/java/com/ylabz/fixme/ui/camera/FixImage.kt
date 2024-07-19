@@ -1,10 +1,14 @@
-package com.ylabz.fixme.ui
+package com.ylabz.fixme.ui.camera
 
 import android.Manifest
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Matrix
 import android.net.Uri
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
+import androidx.camera.core.impl.utils.MatrixExt.postRotate
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.layout.Box
@@ -17,11 +21,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.exifinterface.media.ExifInterface
 import androidx.lifecycle.LifecycleOwner
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import java.io.File
+import java.io.FileOutputStream
+import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -92,6 +99,23 @@ fun FixImage(
                         ContextCompat.getMainExecutor(context),
                         object : ImageCapture.OnImageSavedCallback {
                             override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
+                                // Rotate the image if needed
+                                try {
+                                    val exif = ExifInterface(photoFile)
+                                    val rotation = exif.getAttributeInt(
+                                        ExifInterface.TAG_ORIENTATION,
+                                        ExifInterface.ORIENTATION_NORMAL
+                                    )
+                                    val rotationInDegrees = exifToDegrees(rotation)
+                                    if (rotationInDegrees != 0) {
+                                        val bitmap = BitmapFactory.decodeFile(photoFile.path)
+                                        val rotatedBitmap = rotateBitmap(bitmap, rotationInDegrees)
+                                        saveRotatedBitmap(rotatedBitmap, photoFile)
+                                    }
+                                } catch (e: IOException) {
+                                    e.printStackTrace()
+                                }
+
                                 imageUri = Uri.fromFile(photoFile)
                                 onImageFile(photoFile)
                             }
@@ -109,6 +133,29 @@ fun FixImage(
         } else {
             Text(text = "Camera permission is required to use this feature.")
         }
+    }
+}
+
+
+
+// Helper functions
+private fun exifToDegrees(exifOrientation: Int): Int {
+    return when (exifOrientation) {
+        ExifInterface.ORIENTATION_ROTATE_90 -> 90
+        ExifInterface.ORIENTATION_ROTATE_180 -> 180
+        ExifInterface.ORIENTATION_ROTATE_270 -> 270
+        else -> 0
+    }
+}
+
+private fun rotateBitmap(bitmap: Bitmap, degrees: Int): Bitmap {
+    val matrix = Matrix().apply { postRotate(degrees.toFloat()) }
+    return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+}
+
+private fun saveRotatedBitmap(bitmap: Bitmap, file: File) {
+    FileOutputStream(file).use { out ->
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, out)
     }
 }
 

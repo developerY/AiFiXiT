@@ -9,7 +9,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.ai.client.generativeai.Chat
 import com.google.ai.client.generativeai.GenerativeModel
+import com.google.ai.client.generativeai.type.BlockThreshold
+import com.google.ai.client.generativeai.type.HarmCategory
+import com.google.ai.client.generativeai.type.SafetySetting
 import com.google.ai.client.generativeai.type.content
 import com.google.android.gms.location.LocationServices
 import com.ylabz.fixme.sys.AudioSysImpl
@@ -21,8 +25,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 
-
-
 class FixMeViewModel(application: Application) : AndroidViewModel(application) {
     private val context = getApplication<Application>().applicationContext
 
@@ -31,7 +33,8 @@ class FixMeViewModel(application: Application) : AndroidViewModel(application) {
     private val _fixMeUiState = MutableStateFlow<FixMeUiState>(FixMeUiState.Success())
     val fixMeUiState: StateFlow<FixMeUiState> = _fixMeUiState.asStateFlow()
 
-    private val fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(application)
+    private val fusedLocationProviderClient =
+        LocationServices.getFusedLocationProviderClient(application)
     private val locationTracker = DefaultLocationTracker(fusedLocationProviderClient, application)
 
 
@@ -47,21 +50,30 @@ class FixMeViewModel(application: Application) : AndroidViewModel(application) {
         apiKey = BuildConfig.apiKeyGem
     )*/
 
+
+    val dangerSafety = SafetySetting(HarmCategory.DANGEROUS_CONTENT, BlockThreshold.NONE)
+    val unknownSafety = SafetySetting(HarmCategory.UNKNOWN, BlockThreshold.NONE)
     private val generativeModelChat = GenerativeModel(
         modelName = "gemini-1.5-flash-latest",
-        apiKey = BuildConfig.apiKeyGem
+        apiKey = BuildConfig.apiKeyGem,
+        safetySettings = listOf(
+            dangerSafety
+        )
     )
 
     private val generativeModel = GenerativeModel(
-        modelName = "gemini-pro-vision",
-        apiKey = BuildConfig.apiKeyGem
+        // modelName = "gemini-pro-vision",
+        modelName = "gemini-1.5-flash-latest",
+        apiKey = BuildConfig.apiKeyGem,
+        safetySettings = listOf(
+            dangerSafety
+        )
     )
 
-    private val chat = generativeModelChat.startChat(
-        /*history = listOf(
-            content(role = "user") { text("Hello, Need this fixed.") },
-            content(role = "model") { text("Great to meet you. What would you like fixed?") }
-        )*/
+    private var chat : Chat = generativeModelChat.startChat(
+        history = listOf(
+            content(role = "user") { text("Hello, Any DIY info you can provide it will be greatly appreciated. Thank you.") },
+        )
     )
 
     fun onEvent(event: MLEvent) {
@@ -69,6 +81,15 @@ class FixMeViewModel(application: Application) : AndroidViewModel(application) {
             is MLEvent.GenAiPromptResponseImg -> {
                 sendPromptWithImage(event.prompt, event.index, event.image)
                 Log.d("FixMe", "Called with image")
+            }
+
+            is MLEvent.resetChat -> {
+                chat = generativeModelChat.startChat(
+                    history = listOf(
+                        content(role = "user") { text("Hello, Need this fixed.") },
+                    )
+                )
+                Log.d("FixMe", "resetChat")
             }
 
             is MLEvent.GenAiChatResponseImg -> {
@@ -85,12 +106,13 @@ class FixMeViewModel(application: Application) : AndroidViewModel(application) {
                 //---- get Current location
                 // Now we have to create a variable that will hold the current location state and it will be updated with the getCurrentLocation function.
 
-                    viewModelScope.launch(Dispatchers.IO) {
-                        currentLocation = locationTracker.getCurrentLocation() // Location
-                        val currentState = (_fixMeUiState.value as? FixMeUiState.Success) ?: FixMeUiState.Success()
-                        _fixMeUiState.value = currentState.copy(currLocation = currentLocation)
-                        Log.d("FixMe", "current location $currentLocation}")
-                    }
+                viewModelScope.launch(Dispatchers.IO) {
+                    currentLocation = locationTracker.getCurrentLocation() // Location
+                    val currentState =
+                        (_fixMeUiState.value as? FixMeUiState.Success) ?: FixMeUiState.Success()
+                    _fixMeUiState.value = currentState.copy(currLocation = currentLocation)
+                    Log.d("FixMe", "current location $currentLocation}")
+                }
 
             }
 
@@ -121,7 +143,11 @@ class FixMeViewModel(application: Application) : AndroidViewModel(application) {
     private fun sendPromptWithImage(prompt: String, index: Int, image: Bitmap? = null) {
         Log.d("FixMe", "sendWithImage: $prompt")
         viewModelScope.launch(Dispatchers.IO) {
-            val currentState = (_fixMeUiState.value as? FixMeUiState.Loading) ?: FixMeUiState.Loading()
+            //NOTE: Need to fix the loading state
+            /*val currentState =
+                (_fixMeUiState.value as? FixMeUiState.Loading) ?: FixMeUiState.Loading()
+            _fixMeUiState.value = currentState.copy(isLoading = true)
+            _fixMeUiState.value = currentState*/
             try {
                 val response = generativeModel.generateContent(
                     content(role = "user") {
@@ -129,8 +155,9 @@ class FixMeViewModel(application: Application) : AndroidViewModel(application) {
                         image?.let { image(it) }
                     }
                 )
-                response.text?.let { outputContent : String ->
-                    val currentState = (_fixMeUiState.value as? FixMeUiState.Success) ?: FixMeUiState.Success()
+                response.text?.let { outputContent: String ->
+                    val currentState =
+                        (_fixMeUiState.value as? FixMeUiState.Success) ?: FixMeUiState.Success()
                     val updatedResponses = currentState.geminiResponses.toMutableList().apply {
                         this[index] = outputContent
                     }
@@ -155,8 +182,9 @@ class FixMeViewModel(application: Application) : AndroidViewModel(application) {
                         image?.let { image(it) }
                     }
                 )
-                response.text?.let { outputContent : String ->
-                    val currentState = (_fixMeUiState.value as? FixMeUiState.Success) ?: FixMeUiState.Success()
+                response.text?.let { outputContent: String ->
+                    val currentState =
+                        (_fixMeUiState.value as? FixMeUiState.Success) ?: FixMeUiState.Success()
                     val updatedResponses = currentState.geminiResponses.toMutableList().apply {
                         this[index] = outputContent
                     }
@@ -179,8 +207,9 @@ class FixMeViewModel(application: Application) : AndroidViewModel(application) {
                         text(prompt)
                     }
                 )
-                response.text?.let { outputContent : String ->
-                    val currentState = (_fixMeUiState.value as? FixMeUiState.Success) ?: FixMeUiState.Success()
+                response.text?.let { outputContent: String ->
+                    val currentState =
+                        (_fixMeUiState.value as? FixMeUiState.Success) ?: FixMeUiState.Success()
                     val updatedResponses = currentState.geminiResponses.toMutableList().apply {
                         this[index] = outputContent
                     }
