@@ -90,7 +90,7 @@ fun FourTextAreasTabs(
             when (selectedTabIndex) {
                 0 -> PromptSection(
                     selectedTabIndex, image, geminiText.getOrNull(selectedTabIndex) ?: "",
-                    " 🔧   Fix It  ⚒️ ", "Provide sets to fix . Thanks You! ", onEvent, textFieldValue, speechText, onErrorDismiss
+                    " 🔧   Fix It  ⚒️ ", "How to fix ", onEvent, textFieldValue, speechText, onErrorDismiss
                 )
                 1 -> PromptSection(
                     selectedTabIndex, image, geminiText.getOrNull(selectedTabIndex) ?: "",

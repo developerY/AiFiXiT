@@ -13,7 +13,9 @@ sealed interface FixMeUiState {
     /**
      * Still loading
      */
-    object Loading : FixMeUiState
+    data class Loading(
+        var loading: Boolean = true,
+    ) : FixMeUiState
 
 
     /**

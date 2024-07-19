@@ -121,6 +121,7 @@ class FixMeViewModel(application: Application) : AndroidViewModel(application) {
     private fun sendPromptWithImage(prompt: String, index: Int, image: Bitmap? = null) {
         Log.d("FixMe", "sendWithImage: $prompt")
         viewModelScope.launch(Dispatchers.IO) {
+            val currentState = (_fixMeUiState.value as? FixMeUiState.Loading) ?: FixMeUiState.Loading()
             try {
                 val response = generativeModel.generateContent(
                     content(role = "user") {

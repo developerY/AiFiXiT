@@ -108,7 +108,8 @@ internal fun MLScreen(
     fixMeUiState: FixMeUiState,
 ) {
     when (fixMeUiState) {
-        FixMeUiState.Loading -> MLContent(
+
+        is FixMeUiState.Loading -> MLContent(
             modifier,
             onEvent = onEvent,
             result = emptyList(),
