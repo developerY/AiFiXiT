@@ -12,4 +12,6 @@ The Gemini will provide information on:
 
 
 The video concludes by stating that the creators believe this is the future of how people will get things done with AI.
+
+
 [AiFiXiT Demo Video](https://youtu.be/bSK7EGx2KHs)
