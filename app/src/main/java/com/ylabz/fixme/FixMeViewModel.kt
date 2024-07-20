@@ -53,17 +53,21 @@ class FixMeViewModel(application: Application) : AndroidViewModel(application) {
 
     val dangerSafety = SafetySetting(HarmCategory.DANGEROUS_CONTENT, BlockThreshold.NONE)
     val unknownSafety = SafetySetting(HarmCategory.UNKNOWN, BlockThreshold.NONE)
-    private val generativeModelChat = GenerativeModel(
-        modelName = "gemini-1.5-flash-latest",
+
+    private val generativeModel = GenerativeModel(
+        // modelName = "gemini-pro-vision",
+        modelName = "gemini-1.5-pro-latest",
+        //modelName = "gemini-pro-vision",
         apiKey = BuildConfig.apiKeyGem,
         safetySettings = listOf(
             dangerSafety
         )
     )
 
-    private val generativeModel = GenerativeModel(
-        // modelName = "gemini-pro-vision",
-        modelName = "gemini-1.5-flash-latest",
+
+    private val generativeModelChat = GenerativeModel(
+        //modelName = "gemini-1.5-flash-latest",
+        modelName =  "gemini-1.5-pro-latest",
         apiKey = BuildConfig.apiKeyGem,
         safetySettings = listOf(
             dangerSafety
