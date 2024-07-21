@@ -57,7 +57,9 @@ class FixMeViewModel(application: Application) : AndroidViewModel(application) {
     private val generativeModel = GenerativeModel(
         // modelName = "gemini-pro-vision",
         modelName = "gemini-1.5-pro-latest",
-        //modelName = "gemini-pro-vision",
+        // modelName = "gemini-pro-vision",
+        // modelName = "gemma-2-27b-it",
+        // modelName = "gemini-1.0-pro",
         apiKey = BuildConfig.apiKeyGem,
         safetySettings = listOf(
             dangerSafety

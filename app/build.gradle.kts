@@ -74,6 +74,8 @@ dependencies {
 
     implementation(libs.play.services.mlkit.text.recognition)
 
+    implementation(libs.compose.markdown)
+
     // Camera
     implementation(libs.androidx.camera.camera2)
     implementation(libs.androidx.camera.extensions)

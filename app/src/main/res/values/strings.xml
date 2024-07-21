@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">FixMe</string>
+    <string name="app_name">AiFiXiT</string>
     <string name="action_go">Go</string>
     <string name="baking_title">Fixing Stuff with Gemini</string>
     <string name="label_prompt">Prompt</string>

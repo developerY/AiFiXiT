@@ -22,6 +22,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -29,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ylabz.fixme.MLEvent
 import com.ylabz.fixme.R
+import dev.jeziellago.compose.markdowntext.MarkdownText
 
 @Composable
 fun FourTextAreasTabs(
@@ -218,7 +220,21 @@ fun PromptSection(
             }
         }
 
-        Text(
+        MarkdownText(
+            modifier = Modifier.padding(8.dp),
+            markdown = ansText,
+            //maxLines = 3,
+            //fontResource = R.font.montserrat_medium,
+            /*style = TextStyle(
+                color = Color.Black,
+                fontSize = 18.sp,
+                lineHeight = 18.sp,
+                textAlign = TextAlign.Justify,
+            ),*/
+
+            )
+
+        /*Text(
             text = ansText,
             textAlign = TextAlign.Start,
             color = MaterialTheme.colorScheme.onSurface,
@@ -228,7 +244,7 @@ fun PromptSection(
                 .clip(RoundedCornerShape(8.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant)
                 .padding(16.dp)
-        )
+        )*/
     }
 }
 
