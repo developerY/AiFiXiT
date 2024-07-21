@@ -5,7 +5,14 @@ import android.location.Location
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -13,18 +20,30 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.twotone.UnfoldLess
 import androidx.compose.material.icons.twotone.UnfoldMore
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -43,14 +62,19 @@ fun FourTextAreasTabs(
     errorMessage: String,
     showError: Boolean = false,
     onErrorDismiss: () -> Unit,
-    isLoading: Boolean = false // Add this parameter
+    isLoading: Boolean = true // Add this parameter
 ) {
     var selectedTabIndex by remember { mutableStateOf(0) }
 
     val tabNames = listOf("How", "Parts", "Steps", "Local")
 
-    Column(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background)) {
-        TabRow(selectedTabIndex = selectedTabIndex, modifier = Modifier.background(MaterialTheme.colorScheme.primary)) {
+    Column(modifier = Modifier
+        .fillMaxWidth()
+        .background(MaterialTheme.colorScheme.background)) {
+        TabRow(
+            selectedTabIndex = selectedTabIndex,
+            modifier = Modifier.background(MaterialTheme.colorScheme.primary)
+        ) {
             tabNames.forEachIndexed { index, title ->
                 Tab(
                     text = { Text(title, color = MaterialTheme.colorScheme.onPrimary) },
@@ -109,20 +133,51 @@ fun FourTextAreasTabs(
         ) {
             when (selectedTabIndex) {
                 0 -> PromptSection(
-                    selectedTabIndex, image, geminiText.getOrNull(selectedTabIndex) ?: "",
-                    " 🔧   Fix It  ⚒️ ", "How to fix ", onEvent, textFieldValue, speechText, onErrorDismiss
+                    selectedTabIndex,
+                    image,
+                    geminiText.getOrNull(selectedTabIndex) ?: "",
+                    " 🔧   Fix It  ⚒️ ",
+                    "How to fix ",
+                    onEvent,
+                    textFieldValue,
+                    speechText,
+                    onErrorDismiss
                 )
+
                 1 -> PromptSection(
-                    selectedTabIndex, image, geminiText.getOrNull(selectedTabIndex) ?: "",
-                    " ✅   Parts   🧰 ", "What are the parts with price and budget ", onEvent, textFieldValue, speechText, onErrorDismiss
+                    selectedTabIndex,
+                    image,
+                    geminiText.getOrNull(selectedTabIndex) ?: "",
+                    " ✅   Parts   🧰 ",
+                    "What are the parts with price and budget ",
+                    onEvent,
+                    textFieldValue,
+                    speechText,
+                    onErrorDismiss
                 )
+
                 2 -> PromptSection(
-                    selectedTabIndex, image, geminiText.getOrNull(selectedTabIndex) ?: "",
-                    " 🏗️   Steps   📝 ", "What are the steps to fix ", onEvent, textFieldValue, speechText, onErrorDismiss
+                    selectedTabIndex,
+                    image,
+                    geminiText.getOrNull(selectedTabIndex) ?: "",
+                    " 🏗️   Steps   📝 ",
+                    "What are the steps to fix ",
+                    onEvent,
+                    textFieldValue,
+                    speechText,
+                    onErrorDismiss
                 )
+
                 3 -> PromptSection(
-                    selectedTabIndex, image, geminiText.getOrNull(selectedTabIndex) ?: "",
-                    " 🗺️   Local    📍 ", "What is a local business around ${location.toString()} to get this ", onEvent, textFieldValue, speechText, onErrorDismiss
+                    selectedTabIndex,
+                    image,
+                    geminiText.getOrNull(selectedTabIndex) ?: "",
+                    " 🗺️   Local    📍 ",
+                    "What is a local business around ${location.toString()} to get this ",
+                    onEvent,
+                    textFieldValue,
+                    speechText,
+                    onErrorDismiss
                 )
             }
         }
@@ -147,9 +202,15 @@ fun PromptSection(
     //var prompt = "Please explain $initialPrompt $speechText. Notes:$noteText. Thank you for your help!"
     //var prompt by rememberSaveable { mutableStateOf("Please explain $initialPrompt $speechText. Notes:$noteText. Thank you for your help!") }
     var prompt by rememberSaveable { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(false) }
+    // Watch for changes in ansText
+    LaunchedEffect(ansText) {
+        isLoading = false
+    }
 
     LaunchedEffect(initialPrompt, speechText, noteText) {
-        prompt = "Please explain $initialPrompt $speechText. Notes:$noteText. Thank you for your help!"
+        prompt =
+            "Please explain $initialPrompt $speechText. Notes:$noteText. Thank you for your help!"
     }
 
     Column {
@@ -203,6 +264,7 @@ fun PromptSection(
             )
             Button(
                 onClick = {
+                    isLoading = true
                     try {
                         if (images.isNotEmpty()) {
                             val bitmap = BitmapFactory.decodeFile(images)
@@ -212,6 +274,7 @@ fun PromptSection(
                         }
                     } catch (e: Exception) {
                         onErrorDismiss()
+                        isLoading = false
                     }
                 },
                 modifier = Modifier.fillMaxWidth()
@@ -220,32 +283,45 @@ fun PromptSection(
             }
         }
 
-        MarkdownText(
-            modifier = Modifier.padding(8.dp),
-            markdown = ansText,
-            //maxLines = 3,
-            //fontResource = R.font.montserrat_medium,
-            /*style = TextStyle(
-                color = Color.Black,
-                fontSize = 18.sp,
-                lineHeight = 18.sp,
-                textAlign = TextAlign.Justify,
-            ),*/
 
+        Column {
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier
+                        //.fillMaxWidth()
+                        .size(32.dp)
+                        .padding(horizontal = 8.dp)
+                        .align(Alignment.CenterHorizontally),
+                    color = Color(0xFF388E3C),
+                    strokeWidth = 9.dp // Adjust the stroke width as needed
+                )
+            }
+            MarkdownText(
+                modifier = Modifier.padding(8.dp),
+                markdown = ansText,
+                //maxLines = 3,
+                //fontResource = R.font.montserrat_medium,
+                /*style = TextStyle(
+                    color = Color.Black,
+                    fontSize = 18.sp,
+                    lineHeight = 18.sp,
+                    textAlign = TextAlign.Justify,
+                ),*/
             )
-
-        /*Text(
-            text = ansText,
-            textAlign = TextAlign.Start,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant)
-                .padding(16.dp)
-        )*/
+        }
     }
+    /*Text(
+        text = ansText,
+        textAlign = TextAlign.Start,
+        color = MaterialTheme.colorScheme.onSurface,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .padding(16.dp)
+    )*/
+
 }
 
 @Preview(showBackground = true)
