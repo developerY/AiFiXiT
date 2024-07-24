@@ -55,6 +55,7 @@ class FixMeViewModel(application: Application) : AndroidViewModel(application) {
     val unknownSafety = SafetySetting(HarmCategory.UNKNOWN, BlockThreshold.NONE)
 
     private val generativeModel = GenerativeModel(
+        // modelName = "gemini-1.5-flash",
         // modelName = "gemini-pro-vision",
         modelName = "gemini-1.5-pro-latest",
         // modelName = "gemini-pro-vision",
