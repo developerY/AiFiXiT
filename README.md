@@ -15,3 +15,4 @@ The video concludes by stating that the creators believe this is the future of h
 
 
 [AiFiXiT Demo Video](https://youtu.be/bSK7EGx2KHs)
+[Article](https://zoewave.medium.com/gemini-dev-competition-8ecb06455754)
